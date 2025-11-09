@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════════════════════
+  COPY THIS JSON TO CREATE SELLER ACCOUNT IN MONGODB ATLAS
+═══════════════════════════════════════════════════════════════════
+
+INSTRUCTIONS:
+1. Go to: https://cloud.mongodb.com
+2. Browse Collections → users collection
+3. Click "INSERT DOCUMENT"
+4. Switch to JSON view (click "{}")
+5. Copy and paste the JSON below
+6. Click "Insert"
+
+═══════════════════════════════════════════════════════════════════
+
+{
+  "name": "Sai Flow Water Admin",
+  "email": "saiflowwater2025@gmail.com",
+  "password": "$2b$10$czx.kUpcXOCZQZRVuu1QTOTPHfp1fjJEmqjvQehKVK8NMXlcPdpkC",
+  "phone": "8084924834",
+  "role": "seller",
+  "isVerified": true,
+  "createdAt": {
+    "$date": "2024-11-09T16:00:00.000Z"
+  },
+  "updatedAt": {
+    "$date": "2024-11-09T16:00:00.000Z"
+  }
+}
+
+═══════════════════════════════════════════════════════════════════
+
+LOGIN CREDENTIALS:
+Email:    saiflowwater2025@gmail.com
+Password: Admin@123
+
+═══════════════════════════════════════════════════════════════════
+
+AFTER INSERTING:
+1. Rebuild frontend: cd frontend && npm run build
+2. Upload build to Hostinger
+3. Login at: https://yourdomain.com/seller-login
+
+═══════════════════════════════════════════════════════════════════

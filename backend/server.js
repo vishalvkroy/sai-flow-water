@@ -118,13 +118,10 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/bookings', require('./routes/bookings'));
-console.log('✅ Loading services route...');
 app.use('/api/services', require('./routes/services'));
-console.log('✅ Services route loaded successfully!');
 app.use('/api/payments', require('./routes/payments'));
-app.use('/api/uploads', require('./routes/uploads'));
-app.use('/api/seller', require('./routes/seller'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/seller', require('./routes/seller'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/chatbot', require('./routes/chatbot'));
@@ -142,15 +139,6 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is running successfully',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Test route to verify services route is loaded
-app.get('/api/test-services', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Services route is loaded! Backend has been restarted.',
     timestamp: new Date().toISOString()
   });
 });
