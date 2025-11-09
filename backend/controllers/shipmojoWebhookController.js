@@ -66,6 +66,10 @@ const handleShipmojoWebhook = async (req, res) => {
       
       case 'cancelled':
       case 'shipment cancelled':
+      case 'canceled':
+      case 'shipment canceled':
+      case 'cancellation':
+        console.log('🚫 Processing cancellation webhook...');
         await handleCancelled(webhookData);
         break;
       
@@ -431,6 +435,11 @@ async function handleRTO(data) {
  * Handle cancelled event
  */
 async function handleCancelled(data) {
+  console.log('🔍 Searching for order with:');
+  console.log('   - ShipMozo Order ID:', data.order_id);
+  console.log('   - AWB:', data.awb_number);
+  console.log('   - Reference ID:', data.refrence_id);
+  
   const order = await Order.findOne({ 
     $or: [
       { shipmojoOrderId: data.order_id },
@@ -438,6 +447,8 @@ async function handleCancelled(data) {
       { orderNumber: data.refrence_id }
     ]
   }).populate('user', 'name email');
+  
+  console.log('📊 Order found:', order ? `Yes - ${order.orderNumber}` : 'No');
   
   if (order) {
     // Clear Shipmozo shipment data
@@ -468,6 +479,8 @@ async function handleCancelled(data) {
     
     await order.save();
     console.log(`🚫 Order ${order.orderNumber} cancelled via ShipMozo webhook.`);
+    console.log(`💾 Order status in DB: ${order.orderStatus}`);
+    console.log(`📅 Cancelled at: ${order.cancelledAt}`);
     
     // Send cancellation email to customer
     try {
