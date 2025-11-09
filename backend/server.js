@@ -1,14 +1,26 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 
-dotenv.config();
+// Load dotenv only in development (Render sets env vars directly)
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
+// Log environment check
+console.log('🔍 Environment Check:');
+console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`   PORT: ${process.env.PORT || 'not set'}`);
+console.log(`   MONGODB_URI: ${process.env.MONGODB_URI ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`   SHIPMOJO_PUBLIC_KEY: ${process.env.SHIPMOJO_PUBLIC_KEY ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`   EMAIL_USER: ${process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET'}`);
+console.log('');
 
 const app = express();
 
