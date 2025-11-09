@@ -38,26 +38,12 @@ async function setupTTLIndexes() {
     }
 
     // ==================== CANCELLED ORDERS TTL ====================
-    console.log('📊 Setting up Cancelled Orders TTL Index...');
-    try {
-      await db.collection('orders').createIndex(
-        { cancelledAt: 1 },
-        {
-          expireAfterSeconds: 7776000, // 90 days
-          partialFilterExpression: { orderStatus: 'cancelled' },
-          name: 'cancelled_orders_ttl'
-        }
-      );
-      console.log('✅ Cancelled orders will auto-delete after 90 days');
-      console.log('   - Only applies to cancelled orders');
-      console.log('   - Active orders are never deleted\n');
-    } catch (error) {
-      if (error.code === 85) {
-        console.log('⚠️  TTL index already exists for cancelled orders\n');
-      } else {
-        throw error;
-      }
-    }
+    // DISABLED: Don't auto-delete cancelled orders (may need for refunds/disputes)
+    console.log('📊 Cancelled Orders TTL - DISABLED');
+    console.log('⚠️  Cancelled orders will NOT be auto-deleted');
+    console.log('   - May be needed for refunds/disputes');
+    console.log('   - Manual cleanup recommended instead');
+    console.log('   - Run: node scripts/cleanupOldCancelledOrders.js\n');
 
     // ==================== VERIFY INDEXES ====================
     console.log('📊 Verifying TTL Indexes...\n');
