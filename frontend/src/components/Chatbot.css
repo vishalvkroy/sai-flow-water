@@ -1,0 +1,154 @@
+/* Chatbot Styles - Ensure Maximum Visibility */
+
+.chatbot-button {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.chatbot-window {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Ensure chatbot is above everything */
+.chatbot-button,
+.chatbot-window {
+  isolation: isolate;
+}
+
+/* Subtle glow effect for chatbot button */
+.chatbot-button-pulse {
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4) !important;
+  transition: box-shadow 0.3s ease;
+}
+
+.chatbot-button-pulse:hover {
+  box-shadow: 0 6px 30px rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Ensure no white background or outline */
+.chatbot-button::before,
+.chatbot-button::after {
+  display: none !important;
+}
+
+button.chatbot-button {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Smooth scrollbar for messages */
+.chatbot-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chatbot-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Typing indicator animation */
+@keyframes typing-dot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Message animations */
+@keyframes message-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-animate {
+  animation: message-slide-in 0.3s ease-out;
+}
+
+/* Button hover effects */
+.chatbot-send-button:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s;
+}
+
+.chatbot-send-button:active {
+  transform: scale(0.95);
+}
+
+/* Rating stars */
+.rating-star {
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rating-star:hover {
+  transform: scale(1.2);
+}
+
+/* Product card hover */
+.product-card {
+  transition: all 0.3s;
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .chatbot-window {
+    width: calc(100vw - 32px) !important;
+    right: 16px !important;
+    bottom: 16px !important;
+  }
+  
+  .chatbot-button {
+    right: 16px !important;
+    bottom: 16px !important;
+  }
+}
+
+/* Ensure visibility on all backgrounds */
+.chatbot-button {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
