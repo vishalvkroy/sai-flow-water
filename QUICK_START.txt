@@ -1,0 +1,101 @@
+═══════════════════════════════════════════════════════════════
+  SAI FLOW WATER - RENDER.COM DEPLOYMENT QUICK START
+═══════════════════════════════════════════════════════════════
+
+📋 STEP-BY-STEP COMMANDS (Copy & Paste in PowerShell)
+───────────────────────────────────────────────────────────────
+
+1. Open PowerShell in project folder:
+   - Go to: c:\Water Filter copyy
+   - Type "powershell" in address bar
+   - Press Enter
+
+2. Run these commands ONE BY ONE:
+
+   git init
+   
+   git add .
+   
+   git commit -m "Initial commit"
+   
+   git branch -M main
+   
+   git remote add origin https://github.com/YOUR_USERNAME/saiflow-water.git
+   
+   git push -u origin main
+
+   ⚠️ REPLACE YOUR_USERNAME with your GitHub username!
+
+───────────────────────────────────────────────────────────────
+
+🌐 RENDER.COM SETUP
+───────────────────────────────────────────────────────────────
+
+1. Go to: https://render.com
+2. Sign up with GitHub
+3. Click "New +" → "Web Service"
+4. Connect your repository
+5. Configure:
+   
+   Name: saiflow-backend
+   Region: Singapore
+   Branch: main
+   Root Directory: backend
+   Build Command: npm install
+   Start Command: npm start
+   Plan: Free
+
+───────────────────────────────────────────────────────────────
+
+🔐 ENVIRONMENT VARIABLES (Add in Render)
+───────────────────────────────────────────────────────────────
+
+Copy these from your backend/.env file:
+
+✓ MONGODB_URI
+✓ JWT_SECRET
+✓ RAZORPAY_KEY_ID
+✓ RAZORPAY_KEY_SECRET
+✓ SHIPMOJO_EMAIL
+✓ SHIPMOJO_PASSWORD
+✓ CLOUDINARY_CLOUD_NAME
+✓ CLOUDINARY_API_KEY
+✓ CLOUDINARY_API_SECRET
+✓ EMAIL_USER
+✓ EMAIL_PASS
+✓ NODE_ENV = production
+✓ PORT = 5000
+✓ FRONTEND_URL = https://yourdomain.com
+
+───────────────────────────────────────────────────────────────
+
+✅ VERIFICATION
+───────────────────────────────────────────────────────────────
+
+After deployment, test:
+https://saiflow-backend.onrender.com/api/health
+
+Should return:
+{
+  "success": true,
+  "message": "Server is running successfully"
+}
+
+───────────────────────────────────────────────────────────────
+
+📝 IMPORTANT URLS TO UPDATE
+───────────────────────────────────────────────────────────────
+
+1. ShipMozo Webhook:
+   https://saiflow-backend.onrender.com/api/webhooks/shipmojo
+
+2. Razorpay Webhook:
+   https://saiflow-backend.onrender.com/api/webhook/razorpay
+
+───────────────────────────────────────────────────────────────
+
+⏱️ ESTIMATED TIME: 15-20 minutes
+
+📖 DETAILED GUIDE: See RENDER_DEPLOYMENT_STEPS.md
+
+═══════════════════════════════════════════════════════════════
