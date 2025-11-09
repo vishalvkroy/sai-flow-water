@@ -42,34 +42,30 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS Configuration
+// CORS Configuration - Allow all origins in production for now
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:52584', // Browser preview URL
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
-    
-    // Allow any origin from local network (192.168.x.x) on port 3000 or 3001
-    const localNetworkPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:(3000|3001)$/;
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || localNetworkPattern.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow all origins in development
-    }
-  },
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  optionsSuccessStatus: 200 // For legacy browser support
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'X-JSON'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
+
+// Additional CORS headers for all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Body Parser Middleware
 app.use(express.json({ limit: '10mb' }));
