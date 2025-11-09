@@ -1,7 +1,7 @@
 // Get image URL with proper base URL
 export const getImageUrl = (imagePath) => {
   if (!imagePath) {
-    return 'https://via.placeholder.com/400x400?text=No+Image';
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
   }
   
   // If it's already a full URL, return as-is

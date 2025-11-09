@@ -6,7 +6,7 @@ const ProductImage = ({
   alt = 'Product', 
   className = '', 
   style = {},
-  fallbackSrc = 'https://via.placeholder.com/400x400?text=Product+Image'
+  fallbackSrc = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EProduct Image%3C/text%3E%3C/svg%3E'
 }) => {
   const [imgSrc, setImgSrc] = useState(getImageUrl(src));
   const [isLoading, setIsLoading] = useState(true);

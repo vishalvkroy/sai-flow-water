@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { FiFacebook, FiTwitter, FiInstagram, FiMail, FiPhone, FiMapPin, FiUser } from 'react-icons/fi';
+import { FiFacebook, FiInstagram, FiMail, FiPhone, FiMapPin, FiUser } from 'react-icons/fi';
 
 const FooterContainer = styled.footer`
   background: #1f2937;
@@ -132,13 +132,10 @@ const Footer = () => {
             installation, repair, and maintenance services within 50km radius.
           </p>
           <SocialLinks>
-            <a href="https://facebook.com/saienterprises" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+            <a href="https://www.facebook.com/share/1BP2jBhXJc/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
               <FiFacebook />
             </a>
-            <a href="https://twitter.com/saienterprises" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-              <FiTwitter />
-            </a>
-            <a href="https://instagram.com/saienterprises" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <a href="https://www.instagram.com/vikash07061996singhgmail.com6?igsh=NmJ1cm4xNGlrbHUx" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <FiInstagram />
             </a>
           </SocialLinks>
