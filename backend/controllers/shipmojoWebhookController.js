@@ -469,6 +469,60 @@ async function handleCancelled(data) {
     await order.save();
     console.log(`🚫 Order ${order.orderNumber} cancelled via ShipMozo webhook.`);
     
+    // Send cancellation email to customer
+    try {
+      await sendEmail({
+        to: order.user.email,
+        subject: `Order Cancelled - ${order.orderNumber}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px; text-align: center;">
+              <h1 style="margin: 0; font-size: 28px;">❌ Order Cancelled</h1>
+            </div>
+            <div style="padding: 30px; background-color: #f9fafb;">
+              <p style="font-size: 16px; color: #374151;">Dear ${order.user.name},</p>
+              <p style="font-size: 16px; color: #374151;">Your order <strong>${order.orderNumber}</strong> has been cancelled.</p>
+              
+              <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; color: #991b1b; font-weight: 600;">Cancellation Reason:</p>
+                <p style="margin: 5px 0 0 0; color: #7f1d1d;">${order.cancellationReason || 'Shipment cancelled'}</p>
+              </div>
+              
+              <div style="background-color: white; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #1f2937;">Order Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Order Number:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${order.orderNumber}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Order Amount:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">₹${order.totalPrice.toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Cancelled At:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${new Date(order.cancelledAt).toLocaleString('en-IN')}</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">If you have any questions, please contact our support team.</p>
+              
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="${process.env.FRONTEND_URL}/orders/${order._id}" style="background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Details</a>
+              </div>
+            </div>
+            <div style="background-color: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px;">
+              <p style="margin: 0;">© ${new Date().getFullYear()} Sai Flow Water. All rights reserved.</p>
+            </div>
+          </div>
+        `
+      });
+      console.log(`📧 Cancellation email sent to ${order.user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send cancellation email:', emailError.message);
+    }
+    
     // Emit real-time notification to seller dashboard
     const io = require('../server').io;
     if (io) {
