@@ -6,6 +6,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
+const User = require('../models/User');
 
 async function testCancellation() {
   try {
