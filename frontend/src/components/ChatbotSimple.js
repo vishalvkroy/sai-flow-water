@@ -63,7 +63,8 @@ const ChatbotSimple = () => {
     setIsTyping(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/chatbot/message', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const response = await axios.post(`${API_URL}/chatbot/message`, {
         message: msgToSend,
         sessionId
       });
@@ -117,7 +118,8 @@ const ChatbotSimple = () => {
     console.log('📤 Submitting call request:', requestData);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/call-requests', requestData);
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const response = await axios.post(`${API_URL}/call-requests`, requestData);
 
       console.log('✅ Call request response:', response.data);
 

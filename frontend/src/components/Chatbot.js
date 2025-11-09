@@ -76,7 +76,8 @@ const Chatbot = () => {
 
   const loadChatHistory = async (sid) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/chatbot/history/${sid}`);
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${API_URL}/chatbot/history/${sid}`);
       if (response.data.success && response.data.data.messages.length > 0) {
         setMessages(response.data.data.messages);
       } else {
@@ -127,8 +128,9 @@ const Chatbot = () => {
 
       console.log('🌐 Making API call to chatbot...');
       
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
       const response = await axios.post(
-        'http://localhost:5000/api/chatbot/message',
+        `${API_URL}/chatbot/message`,
         {
           message: inputMessage,
           sessionId
@@ -178,7 +180,8 @@ const Chatbot = () => {
     setRating(selectedRating);
     
     try {
-      await axios.post('http://localhost:5000/api/chatbot/rate', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      await axios.post(`${API_URL}/chatbot/rate`, {
         sessionId,
         rating: selectedRating
       });
@@ -212,8 +215,9 @@ const Chatbot = () => {
         headers: { Authorization: `Bearer ${token}` }
       } : {};
 
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
       const response = await axios.post(
-        'http://localhost:5000/api/call-requests',
+        `${API_URL}/call-requests`,
         {
           ...callFormData,
           sessionId
