@@ -346,8 +346,9 @@ const CallRequests = () => {
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
 
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(
-        `http://localhost:5000/api/call-requests?${params.toString()}`,
+        `${API_URL}/call-requests?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -365,8 +366,9 @@ const CallRequests = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(
-        'http://localhost:5000/api/call-requests/stats',
+        `${API_URL}/call-requests/stats`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -381,8 +383,9 @@ const CallRequests = () => {
   const updateRequestStatus = async (id, status) => {
     try {
       const token = localStorage.getItem('token');
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
       const response = await axios.put(
-        `http://localhost:5000/api/call-requests/${id}`,
+        `${API_URL}/call-requests/${id}`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

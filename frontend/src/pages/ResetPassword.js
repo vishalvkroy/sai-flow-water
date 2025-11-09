@@ -281,11 +281,12 @@ const ResetPassword = () => {
       console.log('🔐 Sending password reset request...');
       console.log('Token:', token);
       console.log('Password length:', password.length);
-      console.log('Request URL:', `http://localhost:5000/api/auth/reset-password/${token}`);
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      console.log('Request URL:', `${API_URL}/auth/reset-password/${token}`);
       console.log('Request body:', { password: '***' });
       
       const response = await axios.put(
-        `http://localhost:5000/api/auth/reset-password/${token}`,
+        `${API_URL}/auth/reset-password/${token}`,
         { password }
       );
 

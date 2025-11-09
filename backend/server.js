@@ -167,11 +167,7 @@ const PORT = process.env.PORT || 5000;
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      process.env.FRONTEND_URL
-    ].filter(Boolean),
+    origin: true, // Allow all origins for Socket.IO
     methods: ['GET', 'POST'],
     credentials: true
   }

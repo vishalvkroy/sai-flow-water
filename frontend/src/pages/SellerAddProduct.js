@@ -294,7 +294,8 @@ const SellerAddProduct = () => {
     isActive: true
   });
 
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const SOCKET_URL = API_URL.replace('/api', '');
 
   useEffect(() => {
     if (isEditMode) {
@@ -681,7 +682,7 @@ const SellerAddProduct = () => {
                   <div className="images-preview">
                     {formData.images.map((image, index) => (
                       <div key={index} className="image-item">
-                        <img src={`http://localhost:5000${image}`} alt={`Product ${index + 1}`} />
+                        <img src={`${SOCKET_URL}${image}`} alt={`Product ${index + 1}`} />
                         <button
                           type="button"
                           className="remove-btn"

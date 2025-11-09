@@ -359,8 +359,8 @@ const SellerProducts = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [newStockValue, setNewStockValue] = useState('');
 
-  const API_URL = 'http://localhost:5000/api';
-  const SOCKET_URL = 'http://localhost:5000';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const SOCKET_URL = API_URL.replace('/api', '');
 
   // Fetch products from API
   const fetchProducts = async () => {
@@ -793,7 +793,7 @@ const SellerProducts = () => {
                     <div className="product-image">
                       {product.images && product.images[0] ? (
                         <img 
-                          src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`}
+                          src={product.images[0].startsWith('http') ? product.images[0] : `${SOCKET_URL}${product.images[0]}`}
                           alt={product.name} 
                           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
                           onError={(e) => {

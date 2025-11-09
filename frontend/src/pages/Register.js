@@ -471,7 +471,8 @@ const Register = () => {
 
   const fetchStates = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/location/states');
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${API_URL}/location/states`);
       if (response.data.success) {
         setStates(response.data.data);
       }
@@ -482,7 +483,8 @@ const Register = () => {
 
   const fetchCities = async (state) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/location/cities/${encodeURIComponent(state)}`);
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${API_URL}/location/cities/${encodeURIComponent(state)}`);
       if (response.data.success) {
         setCities(response.data.data);
       }
@@ -509,7 +511,8 @@ const Register = () => {
         
         try {
           // Reverse geocode to get address
-          const response = await axios.post('http://localhost:5000/api/location/reverse-geocode', {
+          const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+          const response = await axios.post(`${API_URL}/location/reverse-geocode`, {
             latitude,
             longitude
           });
@@ -569,7 +572,8 @@ const Register = () => {
       console.log('🔍 Fetching location for PIN code:', pincode);
       
       try {
-        const response = await axios.get(`http://localhost:5000/api/location/pincode/${pincode}`);
+        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+        const response = await axios.get(`${API_URL}/location/pincode/${pincode}`);
         if (response.data.success) {
           const data = response.data.data;
           

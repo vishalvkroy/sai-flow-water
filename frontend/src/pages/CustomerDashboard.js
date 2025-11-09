@@ -503,7 +503,9 @@ const CustomerDashboard = () => {
     fetchData();
     
     // Setup Socket.IO for real-time updates
-    const socket = io('http://localhost:5000');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    const socketUrl = apiUrl.replace('/api', '');
+    const socket = io(socketUrl);
     
     // Join user room
     if (user?._id) {
