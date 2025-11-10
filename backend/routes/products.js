@@ -315,4 +315,8 @@ router.get('/seller/my-products', protect, authorize('seller', 'admin'), async (
   }
 });
 
+// Mount review routes
+const reviewRoutes = require('./reviews');
+router.use('/', reviewRoutes);
+
 module.exports = router;
