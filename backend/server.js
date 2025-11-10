@@ -103,9 +103,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body Parser Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body Parser Middleware - Increased for image uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb', parameterLimit: 50000 }));
 
 // Static Files with CORS headers
 app.use('/uploads', (req, res, next) => {
