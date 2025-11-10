@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FiStar, FiThumbsUp, FiUser } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const ReviewContainer = styled.div`
   padding: 2rem 0;
