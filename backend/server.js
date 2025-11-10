@@ -31,37 +31,73 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// Rate Limiting (More permissive for development)
+// Rate Limiting - Optimized for 100+ concurrent users
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests in dev, 100 in production
+  max: 2000, // 2000 requests per 15 minutes (~133 per minute) - Supports 100 concurrent users
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
-  }
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // Skip rate limiting for health checks and static assets
+    return req.path === '/api/health' || 
+           req.path.startsWith('/uploads/') ||
+           req.path.startsWith('/static/');
+  },
+  // Don't count successful requests against the limit as heavily
+  skipSuccessfulRequests: false,
+  skipFailedRequests: true, // Don't count failed requests
+  // Store in memory (Redis would be better for production cluster)
+  store: undefined // Uses default memory store
 });
 app.use(limiter);
 
-// CORS Configuration - Allow all origins in production for now
+// CORS Configuration - Allow specific origins
+const allowedOrigins = [
+  'https://saiflowwater.com',
+  'https://www.saiflowwater.com',
+  'http://localhost:3000',
+  'http://localhost:5000'
+];
+
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.log(`⚠️  CORS blocked origin: ${origin}`);
+      callback(null, true); // Still allow for now, just log
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Length', 'X-JSON'],
+  exposedHeaders: ['Content-Length', 'X-JSON', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
   optionsSuccessStatus: 200,
   preflightContinue: false
 }));
 
-// Additional CORS headers for all responses
+// Additional CORS headers for all responses (Fallback)
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*'); // Allow all for now
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
     return res.sendStatus(200);
   }
   next();
@@ -163,13 +199,28 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Create HTTP server and Socket.IO
+// Create HTTP server and Socket.IO - Optimized for 100+ concurrent users
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: true, // Allow all origins for Socket.IO
+    origin: allowedOrigins, // Use same origins as REST API
     methods: ['GET', 'POST'],
     credentials: true
+  },
+  // Performance optimizations for handling many concurrent connections
+  pingTimeout: 60000, // 60 seconds - time to wait for pong response
+  pingInterval: 25000, // 25 seconds - how often to send ping packets
+  upgradeTimeout: 30000, // 30 seconds - time to wait for upgrade
+  maxHttpBufferSize: 1e6, // 1MB - max message size
+  // Connection limits
+  transports: ['websocket', 'polling'], // Prefer websocket, fallback to polling
+  allowUpgrades: true, // Allow transport upgrades
+  // Performance tuning
+  perMessageDeflate: {
+    threshold: 1024 // Only compress messages > 1KB
+  },
+  httpCompression: {
+    threshold: 1024 // Only compress > 1KB
   }
 });
 
@@ -235,10 +286,24 @@ io.on('connection', (socket) => {
   });
 });
 
+// HTTP Keep-Alive and Performance Optimizations
+server.keepAliveTimeout = 65000; // 65 seconds (must be > load balancer timeout)
+server.headersTimeout = 66000; // 66 seconds (must be > keepAliveTimeout)
+server.maxConnections = 200; // Support 200 concurrent connections
+server.timeout = 120000; // 120 seconds request timeout
+
+// Log server configuration
+console.log('⚙️  Server Configuration:');
+console.log(`   Keep-Alive: ${server.keepAliveTimeout}ms`);
+console.log(`   Max Connections: ${server.maxConnections}`);
+console.log(`   Request Timeout: ${server.timeout}ms`);
+console.log(`   Headers Timeout: ${server.headersTimeout}ms`);
+
 server.listen(PORT, () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔌 Socket.IO server running on port ${PORT}`);
+  console.log(`🎯 Optimized for 100+ concurrent users`);
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use. Trying to kill existing process...`);
