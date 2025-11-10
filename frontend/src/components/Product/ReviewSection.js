@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FiStar, FiThumbsUp, FiUser } from 'react-icons/fi';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 
