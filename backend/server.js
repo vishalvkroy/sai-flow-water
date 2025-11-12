@@ -20,6 +20,9 @@ console.log(`   MONGODB_URI: ${process.env.MONGODB_URI ? '✅ SET' : '❌ NOT SE
 console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? '✅ SET' : '❌ NOT SET'}`);
 console.log(`   SHIPMOJO_PUBLIC_KEY: ${process.env.SHIPMOJO_PUBLIC_KEY ? '✅ SET' : '❌ NOT SET'}`);
 console.log(`   EMAIL_USER: ${process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`   CLOUDINARY_CLOUD_NAME: ${process.env.CLOUDINARY_CLOUD_NAME ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`   CLOUDINARY_API_KEY: ${process.env.CLOUDINARY_API_KEY ? '✅ SET' : '❌ NOT SET'}`);
+console.log(`   CLOUDINARY_API_SECRET: ${process.env.CLOUDINARY_API_SECRET ? '✅ SET' : '❌ NOT SET'}`);
 console.log('');
 
 const app = express();
@@ -170,6 +173,17 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/contact', require('./routes/contact'));
 console.log('✅ All routes loaded!');
+
+// Verify Cloudinary Configuration
+console.log('🔍 Verifying Cloudinary configuration...');
+const { verifyCloudinaryConfig } = require('./config/cloudinary');
+try {
+  verifyCloudinaryConfig();
+  console.log('✅ Cloudinary configuration verified!');
+} catch (error) {
+  console.error('❌ Cloudinary configuration error:', error.message);
+  console.error('⚠️  Image uploads will fail without proper Cloudinary setup!');
+}
 
 // Health Check Route
 app.get('/api/health', (req, res) => {

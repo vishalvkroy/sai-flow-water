@@ -49,7 +49,7 @@ router.post(
   }
 );
 
-// @desc    Delete uploaded image from Cloudinary
+// @desc    Delete uploaded image (Cloudinary or Local)
 // @route   DELETE /api/upload/delete
 // @access  Private (Seller only)
 router.delete('/delete', protect, authorize('seller', 'admin'), async (req, res) => {
@@ -63,45 +63,85 @@ router.delete('/delete', protect, authorize('seller', 'admin'), async (req, res)
       });
     }
 
-    // Extract public ID from Cloudinary URL
     console.log(`🔍 Attempting to delete image: ${imageUrl}`);
-    const publicId = getPublicIdFromUrl(imageUrl);
-    console.log(`🆔 Extracted public ID: ${publicId}`);
     
-    if (!publicId) {
-      console.error(`❌ Could not extract public ID from URL: ${imageUrl}`);
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid Cloudinary URL - Could not extract public ID',
-        imageUrl: imageUrl,
-        debug: {
-          urlParts: imageUrl.split('/'),
-          hasUpload: imageUrl.includes('upload'),
-          hasCloudinary: imageUrl.includes('cloudinary')
-        }
-      });
-    }
+    // Check if it's a Cloudinary URL
+    if (imageUrl.includes('cloudinary.com')) {
+      // Handle Cloudinary deletion
+      const publicId = getPublicIdFromUrl(imageUrl);
+      console.log(`🆔 Extracted public ID: ${publicId}`);
+      
+      if (!publicId) {
+        console.error(`❌ Could not extract public ID from Cloudinary URL: ${imageUrl}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid Cloudinary URL - Could not extract public ID',
+          imageUrl: imageUrl,
+          debug: {
+            urlParts: imageUrl.split('/'),
+            hasUpload: imageUrl.includes('upload'),
+            hasCloudinary: imageUrl.includes('cloudinary')
+          }
+        });
+      }
 
-    // Delete from Cloudinary
-    const result = await deleteImage(publicId);
-    
-    if (result.result === 'ok' || result.result === 'not found') {
-      console.log(`🗑️ Image deleted from Cloudinary: ${publicId}`);
-      res.json({
-        success: true,
-        message: 'Image deleted successfully from Cloudinary'
-      });
+      // Delete from Cloudinary
+      const result = await deleteImage(publicId);
+      
+      if (result.result === 'ok' || result.result === 'not found') {
+        console.log(`🗑️ Image deleted from Cloudinary: ${publicId}`);
+        return res.json({
+          success: true,
+          message: 'Image deleted successfully from Cloudinary',
+          result: result
+        });
+      } else {
+        console.error(`❌ Failed to delete from Cloudinary:`, result);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to delete image from Cloudinary',
+          error: result
+        });
+      }
     } else {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to delete image from Cloudinary'
-      });
+      // Handle local file deletion
+      console.log(`🗑️ Deleting local file: ${imageUrl}`);
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Convert relative path to absolute path
+      const filePath = path.join(__dirname, '..', imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl);
+      console.log(`📁 Full file path: ${filePath}`);
+      
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`✅ Local file deleted: ${filePath}`);
+          return res.json({
+            success: true,
+            message: 'Local image deleted successfully'
+          });
+        } else {
+          console.log(`⚠️  File not found (already deleted?): ${filePath}`);
+          return res.json({
+            success: true,
+            message: 'Image not found (may have been already deleted)'
+          });
+        }
+      } catch (fsError) {
+        console.error(`❌ Error deleting local file:`, fsError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to delete local image file',
+          error: fsError.message
+        });
+      }
     }
   } catch (error) {
-    console.error('Delete image error:', error);
+    console.error('Error deleting image:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete image',
+      message: 'Server error while deleting image',
       error: error.message
     });
   }
