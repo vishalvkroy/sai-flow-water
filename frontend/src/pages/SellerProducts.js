@@ -383,6 +383,11 @@ const SellerProducts = () => {
         console.log('Products received:', productsData.length);
         console.log('All products:', productsData.length, 'Active:', productsData.filter(p => p.isActive).length, 'Inactive:', productsData.filter(p => !p.isActive).length);
         
+        // Debug: Log images for each product
+        productsData.forEach((product, index) => {
+          console.log(`📸 Product ${index + 1} (${product.name}) images:`, product.images);
+        });
+        
         // Calculate stats from ALL products first
         const allStats = {
           total: productsData.length,

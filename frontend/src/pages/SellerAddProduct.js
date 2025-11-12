@@ -400,6 +400,9 @@ const SellerAddProduct = () => {
         }
       };
 
+      console.log('📤 Submitting product data:', dataToSend);
+      console.log('🖼️ Images being sent:', dataToSend.images);
+
       const response = isEditMode 
         ? await productsAPI.updateProduct(id, dataToSend)
         : await productsAPI.createProduct(dataToSend);
@@ -601,7 +604,10 @@ const SellerAddProduct = () => {
               </p>
               <ImageUpload
                 images={formData.images}
-                onImagesChange={(newImages) => setFormData(prev => ({ ...prev, images: newImages }))}
+                onImagesChange={(newImages) => {
+                  console.log('🖼️ Images updated in form:', newImages);
+                  setFormData(prev => ({ ...prev, images: newImages }));
+                }}
                 maxImages={10}
                 maxSize={5 * 1024 * 1024} // 5MB
               />

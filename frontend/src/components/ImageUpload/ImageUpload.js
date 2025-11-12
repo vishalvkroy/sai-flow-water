@@ -175,13 +175,19 @@ const ImageUpload = ({
   images = [], 
   onImagesChange, 
   maxImages = 10, 
-  maxSize = 5 * 1024 * 1024, // 5MB
-  acceptedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  maxSize = 5 * 1024 * 1024, // 5MB default
+  allowVideos = true, // New prop to enable video uploads
+  maxVideoSize = 50 * 1024 * 1024 // 50MB for videos
 }) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+
+  // Define accepted file types
+  const acceptedTypes = allowVideos 
+    ? ['image/*', 'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov']
+    : ['image/*'];
 
   const validateFiles = (files) => {
     const errors = [];
@@ -190,15 +196,23 @@ const ImageUpload = ({
       errors.push(`Maximum ${maxImages} images allowed`);
     }
 
-    for (const file of files) {
-      if (!acceptedTypes.includes(file.type)) {
-        errors.push(`${file.name}: Only JPG, PNG, and WebP files are allowed`);
+    files.forEach(file => {
+      // Check file type
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/') && allowVideos;
+      
+      if (!isImage && !isVideo) {
+        errors.push(`${file.name} is not a supported file type. ${allowVideos ? 'Images and videos' : 'Images'} only.`);
+        return;
       }
       
-      if (file.size > maxSize) {
-        errors.push(`${file.name}: File size must be less than ${Math.round(maxSize / (1024 * 1024))}MB`);
+      // Check file size
+      const sizeLimit = isVideo ? maxVideoSize : maxSize;
+      if (file.size > sizeLimit) {
+        const limitMB = (sizeLimit / 1024 / 1024).toFixed(1);
+        errors.push(`${file.name} is too large. Maximum size for ${isVideo ? 'videos' : 'images'} is ${limitMB}MB`);
       }
-    }
+    });
 
     return errors;
   };
@@ -291,6 +305,11 @@ const ImageUpload = ({
     return `${baseUrl}${imagePath}`;
   };
 
+  const isVideoFile = (url) => {
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.avi', '.mov'];
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+  };
+
   return (
     <div>
       <UploadContainer
@@ -318,10 +337,13 @@ const ImageUpload = ({
         <UploadContent>
           <FiUpload className="upload-icon" />
           <p className="upload-text">
-            {uploading ? 'Uploading images...' : 'Click to upload or drag and drop'}
+            {uploading ? `Uploading ${allowVideos ? 'media' : 'images'}...` : 'Click to upload or drag and drop'}
           </p>
           <p className="upload-subtext">
-            PNG, JPG, WebP up to {Math.round(maxSize / (1024 * 1024))}MB each (Max {maxImages} images)
+            {allowVideos 
+              ? `Images up to ${Math.round(maxSize / (1024 * 1024))}MB, Videos up to ${Math.round(maxVideoSize / (1024 * 1024))}MB (Max ${maxImages} files)`
+              : `PNG, JPG, WebP up to ${Math.round(maxSize / (1024 * 1024))}MB each (Max ${maxImages} images)`
+            }
           </p>
         </UploadContent>
       </UploadContainer>
@@ -350,13 +372,24 @@ const ImageUpload = ({
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.3 }}
               >
-                <img
-                  src={formatImageUrl(image)}
-                  alt={`Product ${index + 1}`}
-                  onError={(e) => {
-                    e.target.src = '/default-product.jpg';
-                  }}
-                />
+                {isVideoFile(image) ? (
+                  <video
+                    src={formatImageUrl(image)}
+                    controls
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                    onError={(e) => {
+                      console.error('Video load error:', e);
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={formatImageUrl(image)}
+                    alt={`Product ${index + 1}`}
+                    onError={(e) => {
+                      e.target.src = '/default-product.jpg';
+                    }}
+                  />
+                )}
                 <div className="image-overlay">
                   <button
                     type="button"
