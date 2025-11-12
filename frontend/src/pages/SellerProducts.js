@@ -12,7 +12,7 @@ import {
   FiRefreshCw
 } from 'react-icons/fi';
 import SellerNavbar from '../components/Seller/SellerNavbar';
-import { productsAPI } from '../utils/api';
+import { productsAPI, BASE_URL } from '../utils/api';
 import { connectSocket, disconnectSocket, onEvent, offEvent } from '../utils/socket';
 
 const PageContainer = styled.div`
@@ -762,7 +762,7 @@ const SellerProducts = () => {
                     <div className="product-image">
                       {product.images && product.images[0] ? (
                         <img 
-                          src={product.images[0].startsWith('http') ? product.images[0] : `${SOCKET_URL}${product.images[0]}`}
+                          src={product.images[0].startsWith('http') ? product.images[0] : `${BASE_URL}${product.images[0]}`}
                           alt={product.name} 
                           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
                           onError={(e) => {
