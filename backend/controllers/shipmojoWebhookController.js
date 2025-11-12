@@ -15,11 +15,15 @@ const handleShipmojoWebhook = async (req, res) => {
   try {
     const webhookData = req.body;
     
-    console.log('📨 ShipMozo webhook received:', JSON.stringify(webhookData, null, 2));
+    console.log('🚨 ===== SHIPMOZO WEBHOOK RECEIVED =====');
+    console.log('📨 Full webhook data:', JSON.stringify(webhookData, null, 2));
     console.log('📦 Status:', webhookData.current_status);
     console.log('📦 AWB:', webhookData.awb_number);
     console.log('📦 Order ID:', webhookData.order_id);
     console.log('📦 Reference ID:', webhookData.refrence_id);
+    console.log('🕐 Status Time:', webhookData.status_time);
+    console.log('📝 Cancellation Reason:', webhookData.cancellation_reason);
+    console.log('==========================================');
 
     // Verify webhook signature (if ShipMozo provides one)
     // const isValid = verifyWebhookSignature(req);
