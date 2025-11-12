@@ -78,19 +78,46 @@ const deleteImage = async (publicId) => {
 // Helper function to extract public ID from Cloudinary URL
 const getPublicIdFromUrl = (url) => {
   try {
-    // Example URL: https://res.cloudinary.com/cloud-name/image/upload/v123456/folder/image.jpg
-    const parts = url.split('/');
-    const uploadIndex = parts.indexOf('upload');
-    if (uploadIndex !== -1) {
-      // Get everything after 'upload/v123456/'
-      const pathParts = parts.slice(uploadIndex + 2);
-      const fullPath = pathParts.join('/');
-      // Remove file extension
-      return fullPath.replace(/\.[^/.]+$/, '');
+    console.log('🔍 Extracting public ID from URL:', url);
+    
+    // Handle different URL formats
+    if (!url || typeof url !== 'string') {
+      console.error('❌ Invalid URL provided:', url);
+      return null;
     }
-    return null;
+    
+    // Remove query parameters if any
+    const cleanUrl = url.split('?')[0];
+    const parts = cleanUrl.split('/');
+    
+    // Find the upload part in the URL
+    const uploadIndex = parts.indexOf('upload');
+    if (uploadIndex === -1) {
+      console.error('❌ "upload" not found in URL parts:', parts);
+      return null;
+    }
+    
+    // Get everything after 'upload/v123456/' or 'upload/'
+    let pathParts = parts.slice(uploadIndex + 1);
+    
+    // Skip version if present (starts with 'v' followed by numbers)
+    if (pathParts.length > 0 && /^v\d+$/.test(pathParts[0])) {
+      pathParts = pathParts.slice(1);
+    }
+    
+    if (pathParts.length === 0) {
+      console.error('❌ No path parts found after upload');
+      return null;
+    }
+    
+    const fullPath = pathParts.join('/');
+    // Remove file extension
+    const publicId = fullPath.replace(/\.[^/.]+$/, '');
+    
+    console.log('✅ Extracted public ID:', publicId);
+    return publicId;
   } catch (error) {
-    console.error('Error extracting public ID:', error);
+    console.error('❌ Error extracting public ID:', error);
     return null;
   }
 };

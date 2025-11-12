@@ -12,8 +12,8 @@ import {
   FiRefreshCw
 } from 'react-icons/fi';
 import SellerNavbar from '../components/Seller/SellerNavbar';
-import axios from 'axios';
-import io from 'socket.io-client';
+import { productsAPI } from '../utils/api';
+import { connectSocket, disconnectSocket, onEvent, offEvent } from '../utils/socket';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -352,43 +352,35 @@ const SellerProducts = () => {
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
   
+
   // Modal states
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [newStockValue, setNewStockValue] = useState('');
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-  const SOCKET_URL = API_URL.replace('/api', '');
-
   // Fetch products from API
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
-      if (!token) {
-        navigate('/seller/login');
-        return;
-      }
+      // Build query parameters
+      const params = {
+        page: page.toString(),
+        limit: '100',
+        showAll: 'true'
+      };
 
-      const params = new URLSearchParams({
-        page,
-        limit: 100, // Get all products for now
-        showAll: 'true', // Show both active and inactive products
-        ...(searchTerm && { search: searchTerm }),
-        ...(categoryFilter && { category: categoryFilter })
-      });
+      if (searchTerm) params.search = searchTerm;
+      if (categoryFilter) params.category = categoryFilter;
+      if (statusFilter) params.status = statusFilter;
 
-      console.log('Fetching products with params:', params.toString());
+      console.log('Fetching products with params:', new URLSearchParams(params).toString());
 
-      const response = await axios.get(`${API_URL}/products?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      console.log('Products received:', response.data.data?.length);
-
+      const response = await productsAPI.getProducts(params);
+      
       if (response.data.success) {
         let productsData = response.data.data || [];
+        console.log('Products received:', productsData.length);
         console.log('All products:', productsData.length, 'Active:', productsData.filter(p => p.isActive).length, 'Inactive:', productsData.filter(p => !p.isActive).length);
         
         // Calculate stats from ALL products first
@@ -449,47 +441,34 @@ const SellerProducts = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // Initialize socket connection
-    socketRef.current = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
-    });
-
-    socketRef.current.on('connect', () => {
-      // console.log('🔌 Connected to real-time server');
-      setIsConnected(true);
-      
-      // Join seller room for personalized updates
-      const userId = JSON.parse(atob(token.split('.')[1])).id;
-      socketRef.current.emit('join_seller', userId);
-    });
-
-    socketRef.current.on('disconnect', () => {
-      // console.log('🔌 Disconnected from real-time server');
-      setIsConnected(false);
-    });
+    // Initialize socket connection using socket manager
+    const userId = JSON.parse(atob(token.split('.')[1])).id;
+    connectSocket(userId, 'seller');
+    setIsConnected(true);
 
     // Listen for product updates
-    socketRef.current.on('product_update', (data) => {
-      // console.log('📦 Product update received:', data);
+    const handleProductUpdate = (data) => {
+      console.log('📦 Product update received:', data);
       fetchProducts(); // Refresh products list
-    });
+    };
 
     // Listen for stats updates
-    socketRef.current.on('stats_update', (newStats) => {
-      // console.log('📊 Stats update received:', newStats);
+    const handleStatsUpdate = (newStats) => {
+      console.log('📊 Stats update received:', newStats);
       setStats(prevStats => ({
         ...prevStats,
         ...newStats
       }));
-    });
+    };
+
+    onEvent('product_update', handleProductUpdate);
+    onEvent('stats_update', handleStatsUpdate);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      offEvent('product_update', handleProductUpdate);
+      offEvent('stats_update', handleStatsUpdate);
+      disconnectSocket();
+      setIsConnected(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -497,10 +476,7 @@ const SellerProducts = () => {
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`${API_URL}/products/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await productsAPI.deleteProduct(productId);
         toast.success('🗑️ Product deleted successfully!', {
           position: 'top-right',
           autoClose: 3000,
@@ -523,13 +499,10 @@ const SellerProducts = () => {
   const handleToggleActive = async (productId, currentStatus) => {
     console.log('🔄 Toggle Active called - Product ID:', productId, 'Current Status:', currentStatus, 'Will set to:', !currentStatus);
     try {
-      const token = localStorage.getItem('token');
       const updateData = { isActive: !currentStatus };
-      console.log('📤 Sending PUT request to:', `${API_URL}/products/${productId}`, 'Data:', updateData);
+      console.log('📤 Updating product:', productId, 'Data:', updateData);
       
-      const response = await axios.put(`${API_URL}/products/${productId}`, 
-        updateData,
-        { headers: { Authorization: `Bearer ${token}` }}
+      const response = await productsAPI.updateProduct(productId, updateData
       );
       
       console.log('📥 Response from server:', response.data);
@@ -580,10 +553,8 @@ const SellerProducts = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API_URL}/products/${selectedProduct._id}`, 
-        { stock: parseInt(newStockValue) },
-        { headers: { Authorization: `Bearer ${token}` }}
+      await productsAPI.updateProduct(selectedProduct._id, 
+        { stock: parseInt(newStockValue) }
       );
       toast.success(`📦 Stock updated to ${newStockValue} units successfully!`, {
         position: 'top-right',
@@ -609,10 +580,8 @@ const SellerProducts = () => {
   const handleSetOutOfStock = async (productId) => {
     if (window.confirm('Set this product as out of stock (stock = 0)?')) {
       try {
-        const token = localStorage.getItem('token');
-        await axios.put(`${API_URL}/products/${productId}`, 
-          { stock: 0 },
-          { headers: { Authorization: `Bearer ${token}` }}
+        await productsAPI.updateProduct(productId, 
+          { stock: 0 }
         );
         toast.warning('🚫 Product set to out of stock!', {
           position: 'top-right',
