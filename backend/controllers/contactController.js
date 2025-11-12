@@ -3,18 +3,32 @@ const nodemailer = require('nodemailer');
 
 // Create email transporter
 const createTransporter = () => {
+  console.log('📧 Checking email configuration...');
+  console.log('   EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET');
+  console.log('   EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ SET' : '❌ NOT SET');
+  
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('⚠️  Email credentials not configured');
+    console.log('⚠️  Email credentials not configured - skipping email sending');
     return null;
   }
 
-  return nodemailer.createTransporter({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  try {
+    const transporter = nodemailer.createTransporter({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+    console.log('✅ Email transporter created successfully');
+    return transporter;
+  } catch (error) {
+    console.error('❌ Error creating email transporter:', error);
+    return null;
+  }
 };
 
 // @desc    Submit contact form
@@ -22,10 +36,12 @@ const createTransporter = () => {
 // @access  Public
 exports.submitContactForm = async (req, res) => {
   try {
+    console.log('📧 Contact form submission received:', req.body);
     const { name, email, phone, subject, message } = req.body;
 
     // Validate required fields
     if (!name || !email || !phone || !subject || !message) {
+      console.log('❌ Missing required fields:', { name: !!name, email: !!email, phone: !!phone, subject: !!subject, message: !!message });
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
@@ -33,6 +49,7 @@ exports.submitContactForm = async (req, res) => {
     }
 
     // Create contact entry
+    console.log('💾 Creating contact entry in database...');
     const contact = await Contact.create({
       name,
       email,
@@ -40,11 +57,13 @@ exports.submitContactForm = async (req, res) => {
       subject,
       message
     });
+    console.log('✅ Contact entry created:', contact._id);
 
     // Send email notification to admin
     const transporter = createTransporter();
     if (transporter) {
       try {
+        console.log('📧 Sending admin notification email...');
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: process.env.EMAIL_USER,
@@ -61,7 +80,9 @@ exports.submitContactForm = async (req, res) => {
             <p><small>Submitted at: ${new Date().toLocaleString()}</small></p>
           `
         });
+        console.log('✅ Admin notification email sent successfully');
 
+        console.log('📧 Sending confirmation email to user...');
         // Send confirmation email to user
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
@@ -79,10 +100,15 @@ exports.submitContactForm = async (req, res) => {
             <p><small>This is an automated message. Please do not reply to this email.</small></p>
           `
         });
+        console.log('✅ Confirmation email sent successfully');
       } catch (emailError) {
-        console.error('Email sending error:', emailError);
-        // Continue even if email fails
+        console.error('❌ Email sending error:', emailError);
+        console.error('   Error code:', emailError.code);
+        console.error('   Error message:', emailError.message);
+        // Continue even if email fails - don't let email failure break the contact form
       }
+    } else {
+      console.log('⚠️  Email transporter not available - skipping email notifications');
     }
 
     res.status(201).json({
