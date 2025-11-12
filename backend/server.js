@@ -174,12 +174,11 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/contact', require('./routes/contact'));
 console.log('✅ All routes loaded!');
 
-// Verify Cloudinary Configuration
-console.log('🔍 Verifying Cloudinary configuration...');
-const { verifyCloudinaryConfig } = require('./config/cloudinary');
+// Additional Cloudinary verification after routes are loaded
+console.log('🔍 Re-verifying Cloudinary configuration...');
 try {
   verifyCloudinaryConfig();
-  console.log('✅ Cloudinary configuration verified!');
+  console.log('✅ Cloudinary configuration re-verified after routes loaded!');
 } catch (error) {
   console.error('❌ Cloudinary configuration error:', error.message);
   console.error('⚠️  Image uploads will fail without proper Cloudinary setup!');
