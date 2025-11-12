@@ -72,8 +72,13 @@ router.delete('/delete', protect, authorize('seller', 'admin'), async (req, res)
       console.error(`❌ Could not extract public ID from URL: ${imageUrl}`);
       return res.status(400).json({
         success: false,
-        message: 'Invalid Cloudinary URL',
-        imageUrl: imageUrl
+        message: 'Invalid Cloudinary URL - Could not extract public ID',
+        imageUrl: imageUrl,
+        debug: {
+          urlParts: imageUrl.split('/'),
+          hasUpload: imageUrl.includes('upload'),
+          hasCloudinary: imageUrl.includes('cloudinary')
+        }
       });
     }
 

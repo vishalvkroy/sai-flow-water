@@ -262,13 +262,22 @@ const ImageUpload = ({
 
   const removeImage = async (imageUrl) => {
     try {
+      console.log('🗑️ Attempting to delete image:', imageUrl);
+      console.log('🔍 Image URL type:', typeof imageUrl);
+      console.log('🔍 Image URL length:', imageUrl?.length);
+      
       await uploadsAPI.deleteImage(imageUrl);
       const updatedImages = images.filter(img => img !== imageUrl);
       onImagesChange(updatedImages);
       console.log('✅ Image removed successfully');
     } catch (error) {
-      console.error('Error removing image:', error);
-      setError('Failed to remove image. Please try again.');
+      console.error('❌ Error removing image:', error);
+      console.error('❌ Error response data:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
+      // Show more specific error message
+      const errorMessage = error.response?.data?.message || 'Failed to remove image. Please try again.';
+      setError(errorMessage);
     }
   };
 
@@ -354,7 +363,9 @@ const ImageUpload = ({
                     className="delete-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeImage(image);
+                      console.log('🔍 Original image value:', image);
+                      console.log('🔍 Formatted image URL:', formatImageUrl(image));
+                      removeImage(image); // Use original image value, not formatted
                     }}
                     title="Remove image"
                   >
