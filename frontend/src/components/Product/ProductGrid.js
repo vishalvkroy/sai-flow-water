@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { FiShoppingCart, FiEye } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { getImageUrl } from '../../utils/helpers';
+import { handleImageError, FALLBACK_NO_IMAGE } from '../../utils/imageFallback';
 import { useCart } from '../../contexts/CartContext';
 
 const GridContainer = styled.div`
@@ -275,14 +276,11 @@ const ProductGrid = ({ products = [] }) => {
               <img 
                 src={getImageUrl(product.images[0])} 
                 alt={product.name}
-                onError={(e) => {
-                  e.target.onerror = null; // Prevent infinite loop
-                  e.target.src = 'https://via.placeholder.com/400x400/e5e7eb/6b7280?text=Product+Image';
-                }}
+                onError={(e) => handleImageError(e, 'product')}
               />
             ) : (
               <img 
-                src="https://via.placeholder.com/400x400/e5e7eb/6b7280?text=No+Image"
+                src={FALLBACK_NO_IMAGE}
                 alt={product.name}
               />
             )}

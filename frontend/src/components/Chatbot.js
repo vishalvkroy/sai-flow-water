@@ -93,7 +93,7 @@ const Chatbot = () => {
   const sendWelcomeMessage = () => {
     const welcomeMessage = {
       role: 'bot',
-      content: "👋 Hello! Welcome to Arroh Water Filters!\n\nI'm your virtual assistant, here to help you with:\n\n• 🛒 Product information and recommendations\n• 📦 Order tracking and status\n• 💳 Payment options\n• 🔧 Installation guidance\n• 🛡️ Warranty and service support\n• 📞 Request a call back\n\nHow can I assist you today?",
+      content: "👋 Hello! Welcome to Sai Flow Water!\n\nI'm your RO virtual assistant, here to help you with:\n\n• 🛒 Product information and recommendations\n• 📦 Order tracking and status\n• 💳 Payment options\n• 🔧 Installation guidance\n• 🛡️ Warranty and service support\n• 📞 Request a call back\n\nHow can I assist you today?",
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
@@ -168,7 +168,7 @@ const Chatbot = () => {
       
       const errorMessage = {
         role: 'bot',
-        content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment or contact our support team at support@arrohfilters.com",
+        content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment or contact our support team at +91 8084924834",
         timestamp: new Date()
       };
       
@@ -469,7 +469,7 @@ const Chatbot = () => {
                   <Bot size={24} className="text-blue-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Arroh Assistant</h3>
+                  <h3 className="font-bold text-lg">RO Assistant</h3>
                   <p className="text-xs text-blue-100">Online • Always here to help</p>
                 </div>
               </div>
@@ -562,7 +562,7 @@ const Chatbot = () => {
                   </form>
                   
                   <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                    <span>Powered by Arroh AI</span>
+                    <span>Powered by Sai Flow Water</span>
                     {messages.length > 2 && !showRating && (
                       <button
                         onClick={() => setShowRating(true)}

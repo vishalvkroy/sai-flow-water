@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { getImageUrl } from '../../utils/helpers';
 import { formatCurrency, calculateDiscount } from '../../utils/helpers';
+import { handleImageError } from '../../utils/imageFallback';
 import { toast } from 'react-toastify';
 
 const Card = styled(motion.div)`
@@ -499,10 +500,7 @@ const ProductCard = ({ product }) => {
           <ProductImage 
             src={getImageUrl(product.images?.[0])} 
             alt={product.name}
-            onError={(e) => {
-              e.target.onerror = null; // Prevent infinite loop
-              e.target.src = 'https://via.placeholder.com/400x400/e5e7eb/6b7280?text=Product+Image';
-            }}
+            onError={(e) => handleImageError(e, 'product')}
           />
           
           {/* Stock Badge */}

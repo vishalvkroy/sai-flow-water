@@ -7,10 +7,8 @@ import {
   FiCheckCircle,
   FiUser,
   FiPhone,
-  FiMapPin,
   FiCalendar,
-  FiX,
-  FiEdit
+  FiX
 } from 'react-icons/fi';
 import SellerNavbar from '../components/Seller/SellerNavbar';
 import CancelOrderModal from '../components/Modals/CancelOrderModal';
@@ -31,6 +29,7 @@ const SellerServices = () => {
   useEffect(() => {
     fetchBookings();
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const fetchBookings = async () => {

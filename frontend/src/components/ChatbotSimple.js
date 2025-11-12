@@ -30,7 +30,7 @@ const ChatbotSimple = () => {
     if (isOpen && messages.length === 0) {
       setMessages([{
         role: 'bot',
-        content: '👋 Hello! Welcome to Arroh Water Filters!\n\nI\'m your virtual assistant. How can I help you today?\n\n• Product information\n• Order tracking\n• Payment options\n• Installation help\n• Warranty details',
+        content: '👋 Hello! Welcome to Sai Flow Water!\n\nI\'m your RO virtual assistant. How can I help you today?\n\n• Product information\n• Order tracking\n• Payment options\n• Installation help\n• Warranty details',
         timestamp: new Date()
       }]);
     }
@@ -205,7 +205,7 @@ const ChatbotSimple = () => {
             alignItems: 'center'
           }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px' }}>🤖 Arroh Assistant</h3>
+              <h3 style={{ margin: 0, fontSize: '18px' }}>🤖 RO Assistant</h3>
               <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>Online • Here to help</p>
             </div>
             <button

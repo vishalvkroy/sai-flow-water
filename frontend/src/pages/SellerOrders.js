@@ -450,6 +450,7 @@ const SellerOrders = () => {
   // Fetch orders when page, limit, or filter changes
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, statusFilter]);
 
   // Set up Socket.IO connection (only once)
@@ -517,6 +518,7 @@ const SellerOrders = () => {
     return () => {
       socket.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
   const calculateStats = (ordersList) => {

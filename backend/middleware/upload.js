@@ -1,38 +1,30 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary').cloudinary;
 
-// Ensure upload directory exists
-const uploadDir = 'uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    let folder = 'general';
+// Cloudinary Storage Configuration
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    let folder = 'arroh-water-filter/general';
     
     if (file.fieldname === 'productImages') {
-      folder = 'products';
+      folder = 'arroh-water-filter/products';
     } else if (file.fieldname === 'avatar') {
-      folder = 'avatars';
+      folder = 'arroh-water-filter/avatars';
     } else if (file.fieldname === 'reviewImages') {
-      folder = 'reviews';
+      folder = 'arroh-water-filter/reviews';
     }
 
-    const dir = `${uploadDir}/${folder}`;
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    return {
+      folder: folder,
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      transformation: [
+        { width: 1200, height: 1200, crop: 'limit' },
+        { quality: 'auto:good' },
+        { fetch_format: 'auto' }
+      ]
+    };
   }
 });
 

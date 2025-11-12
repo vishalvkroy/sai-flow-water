@@ -46,6 +46,8 @@ import CustomerProfile from './pages/CustomerProfileNew';
 import Wishlist from './pages/Wishlist';
 import OrderDetails from './pages/OrderDetails';
 import CallRequests from './pages/CallRequests';
+import Contact from './pages/Contact';
+import About from './pages/About';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -64,6 +66,8 @@ function App() {
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/track-order" element={<TrackOrder />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />

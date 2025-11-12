@@ -245,8 +245,8 @@ const Home = () => {
     },
     {
       icon: <FiShield />,
-      title: '5-Year Warranty',
-      description: 'Comprehensive warranty coverage on all our water filtration systems and components.'
+      title: '1 Year Warranty & 5 Years Free Service',
+      description: 'Get 1 year comprehensive warranty plus 5 years of free service on all our water filtration systems.'
     },
     {
       icon: <FiClock />,
@@ -264,7 +264,7 @@ const Home = () => {
     { number: '500+', label: 'Happy Customers' },
     { number: '50km', label: 'Service Radius' },
     { number: '24/7', label: 'Support Available' },
-    { number: '3+', label: 'Years Experience' }
+    { number: '10+', label: 'Years Experience' }
   ];
 
   return (

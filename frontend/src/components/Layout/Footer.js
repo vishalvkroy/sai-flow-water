@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { FiFacebook, FiInstagram, FiMail, FiPhone, FiMapPin, FiUser } from 'react-icons/fi';
+import { FiFacebook, FiInstagram, FiMail, FiPhone, FiMapPin, FiUser, FiYoutube } from 'react-icons/fi';
 
 const FooterContainer = styled.footer`
   background: #1f2937;
@@ -137,6 +137,9 @@ const Footer = () => {
             </a>
             <a href="https://www.instagram.com/vikash07061996singhgmail.com6?igsh=NmJ1cm4xNGlrbHUx" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <FiInstagram />
+            </a>
+            <a href="https://youtube.com/@saiflowwater" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+              <FiYoutube />
             </a>
           </SocialLinks>
         </FooterSection>

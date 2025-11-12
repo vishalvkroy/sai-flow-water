@@ -27,6 +27,7 @@ export const WishlistProvider = ({ children }) => {
     } else {
       setWishlist([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchWishlist = async () => {

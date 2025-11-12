@@ -139,46 +139,53 @@ const ThumbnailGrid = styled.div`
   gap: 1rem;
 `;
 
-const Thumbnail = styled(motion.div)`
+const Thumbnail = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => prop !== 'active'
+})`
   position: relative;
   width: 100%;
   height: 100px;
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  border: 3px solid ${props => props.active ? '#3b82f6' : '#e5e7eb'};
+  border: 3px solid ${props => props.active ? '#3b82f6' : 'transparent'};
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  box-shadow: ${props => props.active ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.05)'};
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     border-color: #3b82f6;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);
   }
-  
+
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
   }
-  
+
+  &:hover img {
+    transform: scale(1.05);
+  }
+
   ${props => props.active && `
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+    
     &::after {
-      content: '✓';
+      content: '';
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      background: #3b82f6;
-      color: white;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       width: 24px;
       height: 24px;
+      background: #3b82f6;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
-      font-weight: bold;
     }
   `}
 `;
@@ -544,7 +551,9 @@ const AddToCartButton = styled(motion.button)`
   }
 `;
 
-const WishlistButton = styled(motion.button)`
+const WishlistButton = styled(motion.button).withConfig({
+  shouldForwardProp: (prop) => prop !== 'isInWishlist'
+})`
   flex: 1;
   background: white;
   color: #ef4444;
@@ -591,8 +600,6 @@ const WishlistButton = styled(motion.button)`
   }
   
   svg {
-    font-size: 1.5rem;
-    fill: ${props => props.inWishlist ? 'currentColor' : 'none'};
   }
 `;
 
@@ -786,14 +793,16 @@ const TabsHeader = styled.div`
   margin-bottom: 2rem;
 `;
 
-const Tab = styled.button`
+const Tab = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== 'active'
+})`
   background: none;
   border: none;
   padding: 1rem 2rem;
-  cursor: pointer;
-  border-bottom: 2px solid ${props => props.active ? '#3b82f6' : 'transparent'};
+  font-weight: 500;
   color: ${props => props.active ? '#3b82f6' : '#6b7280'};
-  font-weight: ${props => props.active ? '600' : '500'};
+  border-bottom: 2px solid ${props => props.active ? '#3b82f6' : 'transparent'};
+  cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
@@ -1070,7 +1079,7 @@ const ProductDetail = () => {
               <BenefitIcon>
                 <FiShield />
               </BenefitIcon>
-              <BenefitText>{product.specifications?.warranty || '5-Year Warranty'}</BenefitText>
+              <BenefitText>{product.specifications?.warranty || '1 Year Warranty & 5 Years Free Service'}</BenefitText>
             </BenefitCard>
           </BenefitsSection>
 

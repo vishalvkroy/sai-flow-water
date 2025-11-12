@@ -168,6 +168,7 @@ app.use('/api/webhook', require('./routes/webhook'));
 app.use('/api/webhooks', require('./routes/shipmojoWebhook'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/contact', require('./routes/contact'));
 console.log('✅ All routes loaded!');
 
 // Health Check Route
@@ -227,18 +228,36 @@ const io = new Server(server, {
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('🔌 User connected:', socket.id);
+  
+  const { userId, userType } = socket.handshake.auth;
+  
+  if (userId) {
+    console.log(`👤 ${userType || 'User'} ${userId} connected`);
+  }
 
   // Join user-specific room (for customers)
   socket.on('join_user', (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`👤 Customer ${userId} joined room`);
+    if (userId) {
+      socket.join(`user_${userId}`);
+      console.log(`👤 Customer ${userId} joined room user_${userId}`);
+    }
   });
 
   // Join seller room for real-time updates
   socket.on('join_seller', (sellerId) => {
-    socket.join(`seller_${sellerId}`);
-    socket.join('sellers'); // Join general sellers room
-    console.log(`👤 Seller ${sellerId} joined rooms: seller_${sellerId} and sellers`);
+    if (sellerId) {
+      socket.join(`seller_${sellerId}`);
+      socket.join('sellers'); // Join general sellers room
+      console.log(`👤 Seller ${sellerId} joined rooms: seller_${sellerId} and sellers`);
+    }
+  });
+
+  // Join general room
+  socket.on('join_room', (roomName) => {
+    if (roomName) {
+      socket.join(roomName);
+      console.log(`🏠 Socket ${socket.id} joined room: ${roomName}`);
+    }
   });
 
   // Handle new orders from client

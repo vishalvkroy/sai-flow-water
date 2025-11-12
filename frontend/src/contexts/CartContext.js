@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cartAPI } from '../utils/api';
 import { showError, showSuccess } from '../utils/errorHandler';
 
@@ -79,10 +80,12 @@ const initialState = {
 // Cart Provider Component
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const navigate = useNavigate();
 
   // Load cart on component mount
   useEffect(() => {
     loadCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load cart from backend
@@ -116,6 +119,8 @@ export const CartProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (!token) {
         showError('Please login to add items to cart');
+        // Redirect to login page
+        navigate('/login');
         throw new Error('Authentication required');
       }
 

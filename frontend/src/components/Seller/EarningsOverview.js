@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiDollarSign, FiTrendingUp, FiPackage, FiTool, FiClock } from 'react-icons/fi';
 import { analyticsAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
-import { io } from 'socket.io-client';
+import { connectSocket, disconnectSocket, onEvent, offEvent } from '../../utils/socket';
 
 const EarningsOverview = () => {
   const [stats, setStats] = useState(null);
@@ -18,26 +18,27 @@ const EarningsOverview = () => {
     const interval = setInterval(fetchStats, 30000);
     
     // Setup Socket.IO for real-time updates
-    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
-      auth: {
-        token: localStorage.getItem('token')
-      }
-    });
-
+    connectSocket(null, 'seller');
+    
     // Listen for payment events
-    socket.on('payment-received', () => {
+    const handlePaymentReceived = () => {
       console.log('💰 Payment received - Refreshing analytics...');
       fetchStats();
-    });
-
-    socket.on('order-paid', () => {
+    };
+    
+    const handleOrderPaid = () => {
       console.log('💰 Order marked as paid - Refreshing analytics...');
       fetchStats();
-    });
+    };
+    
+    onEvent('payment-received', handlePaymentReceived);
+    onEvent('order-paid', handleOrderPaid);
 
     return () => {
       clearInterval(interval);
-      socket.disconnect();
+      offEvent('payment-received', handlePaymentReceived);
+      offEvent('order-paid', handleOrderPaid);
+      disconnectSocket();
     };
   }, []);
 

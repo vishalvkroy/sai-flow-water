@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsAPI } from '../../utils/api';
-import { io } from 'socket.io-client';
+import { connectSocket, disconnectSocket, onEvent, offEvent } from '../../utils/socket';
 
 const NavbarContainer = styled.nav`
   background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
@@ -531,19 +531,22 @@ const SellerNavbar = () => {
     fetchNotificationCount();
     
     // Setup Socket.IO for real-time updates
-    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
-      auth: {
-        token: localStorage.getItem('token')
-      }
-    });
-
-    socket.on('new-notification', () => {
-      setNotificationCount(prev => prev + 1);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    if (user?._id) {
+      connectSocket(user._id, 'seller');
+      
+      // Listen for new notifications
+      const handleNewNotification = () => {
+        setNotificationCount(prev => prev + 1);
+        fetchNotificationCount(); // Refresh count from server
+      };
+      
+      onEvent('new-notification', handleNewNotification);
+      
+      return () => {
+        offEvent('new-notification', handleNewNotification);
+        disconnectSocket();
+      };
+    }
   }, []);
 
   const handleLogout = () => {

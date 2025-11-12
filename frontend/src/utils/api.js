@@ -1,14 +1,16 @@
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
-// Create axios instance
+// Create axios instance with improved configuration
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // Increased to 30 seconds for better reliability
+  withCredentials: true, // Enable credentials for CORS
 });
 
 // Request interceptor to add auth token
@@ -98,7 +100,7 @@ export const ordersAPI = {
   getOrderById: (id) => api.get(`/orders/${id}`),
   getAllOrders: (params = {}) => api.get('/orders', { params }),
   getSellerStats: () => api.get('/orders/seller/stats'),
-  confirmOrder: (id) => api.put(`/orders/${id}/confirm`),
+  confirmOrder: (id) => api.put(`/orders/${id}/confirm`, {}, { timeout: 30000 }),
   getCourierRates: (id, customParams = null) => {
     const params = customParams ? {
       weight: customParams.weight,
@@ -183,10 +185,11 @@ export const uploadsAPI = {
   uploadFile: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/uploads', formData, {
+    return api.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000, // 60 seconds for file uploads
     });
   },
   uploadMultipleFiles: (files) => {
@@ -194,12 +197,34 @@ export const uploadsAPI = {
     files.forEach(file => {
       formData.append('files', file);
     });
-    return api.post('/uploads/multiple', formData, {
+    return api.post('/upload/multiple', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000, // 60 seconds for file uploads
+    });
+  },
+  uploadProductImages: (files) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('productImages', file);
+    });
+    return api.post('/upload/products', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 60 seconds for file uploads
+    });
+  },
+  deleteImage: (imageUrl) => {
+    return api.delete('/upload/delete', {
+      data: { imageUrl },
+      timeout: 15000, // 15 seconds for delete operations
     });
   },
 };
+
+// Export BASE_URL for Socket.IO and image URLs
+export { BASE_URL };
 
 export default api;

@@ -259,8 +259,11 @@ const Navbar = () => {
           <NavLink to="/service-booking" onClick={() => setIsMenuOpen(false)}>
             Services
           </NavLink>
-          <NavLink to="/track-order" onClick={() => setIsMenuOpen(false)}>
-            Track Order
+          <NavLink to="/about" onClick={() => setIsMenuOpen(false)}>
+            About
+          </NavLink>
+          <NavLink to="/contact" onClick={() => setIsMenuOpen(false)}>
+            Contact
           </NavLink>
         </NavLinks>
 

@@ -554,8 +554,10 @@ const getSellerStats = async (req, res) => {
 // @access  Private/Seller
 const confirmOrder = async (req, res) => {
   try {
+    // Add timeout to database operations
     const order = await Order.findById(req.params.id)
-      .populate('user', 'name email phone');
+      .populate('user', 'name email phone')
+      .maxTimeMS(10000); // 10 second timeout
     
     if (!order) {
       return res.status(404).json({
@@ -564,42 +566,100 @@ const confirmOrder = async (req, res) => {
       });
     }
     
+    console.log(`📋 Order ${order.orderNumber} current status: ${order.orderStatus}`);
+    
     if (order.orderStatus !== 'pending') {
       return res.status(400).json({
         success: false,
-        message: 'Only pending orders can be confirmed'
+        message: `Order is already ${order.orderStatus}. Only pending orders can be confirmed.`,
+        currentStatus: order.orderStatus
       });
     }
     
-    order.orderStatus = 'processing';
+    // Update order status
+    order.orderStatus = 'confirmed';
     order.statusHistory.push({
-      status: 'processing',
+      status: 'confirmed',
       timestamp: new Date(),
-      note: 'Order confirmed and processing',
+      note: 'Order confirmed by seller',
       updatedBy: req.user._id
     });
     
-    await order.save();
+    // Save with timeout
+    await order.save({ maxTimeMS: 10000 });
     
-    // Send confirmation email to customer
+    // Create notification for customer
     try {
-      const emailService = require('../services/emailService');
-      await emailService.sendOrderConfirmation(order, order.user);
-    } catch (emailError) {
-      console.error('Failed to send confirmation email:', emailError.message);
-      // Don't fail the request if email fails
+      const { createNotification } = require('./notificationController');
+      await createNotification(
+        order.user._id,
+        'order_confirmed',
+        'Order Confirmed',
+        `Your order #${order.orderNumber} has been confirmed and is being processed.`,
+        `/orders/${order._id}`
+      );
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError.message);
     }
+    
+    // Send confirmation email to customer (async, don't block response)
+    setImmediate(async () => {
+      try {
+        const emailService = require('../services/emailService');
+        await emailService.sendOrderConfirmation(order, order.user);
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError.message);
+      }
+    });
+    
+    // Emit real-time update
+    try {
+      if (io) {
+        io.to(`user_${order.user._id}`).emit('order_status_updated', {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          status: 'confirmed',
+          message: 'Your order has been confirmed!'
+        });
+      }
+    } catch (socketError) {
+      console.error('Failed to emit socket update:', socketError.message);
+    }
+    
+    console.log(`✅ Order ${order.orderNumber} confirmed successfully`);
     
     res.status(200).json({
       success: true,
       message: 'Order confirmed successfully',
-      data: order
+      data: {
+        _id: order._id,
+        orderNumber: order.orderNumber,
+        orderStatus: order.orderStatus,
+        statusHistory: order.statusHistory
+      }
     });
   } catch (error) {
     console.error('Confirm order error:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'MongoTimeoutError') {
+      return res.status(408).json({
+        success: false,
+        message: 'Database operation timed out. Please try again.'
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order ID format'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Server error while confirming order'
+      message: 'Server error while confirming order. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

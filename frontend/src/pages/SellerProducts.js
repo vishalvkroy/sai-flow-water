@@ -6,10 +6,8 @@ import { toast } from 'react-toastify';
 import { 
   FiPlus, 
   FiEdit, 
-  FiTrash2, 
   FiEye, 
   FiSearch,
-  FiFilter,
   FiDownload,
   FiRefreshCw
 } from 'react-icons/fi';
@@ -443,6 +441,7 @@ const SellerProducts = () => {
 
   useEffect(() => {
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchTerm, categoryFilter, statusFilter]);
 
   // WebSocket connection for real-time updates
@@ -492,6 +491,7 @@ const SellerProducts = () => {
         socketRef.current.disconnect();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDeleteProduct = async (productId) => {

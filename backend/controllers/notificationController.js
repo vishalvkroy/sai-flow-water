@@ -152,18 +152,30 @@ const deleteNotification = async (req, res) => {
  */
 const clearAllNotifications = async (req, res) => {
   try {
-    await Notification.deleteMany({ user: req.user._id }).maxTimeMS(5000);
+    const result = await Notification.deleteMany({ user: req.user._id }).maxTimeMS(10000);
+    
+    console.log(`✅ Cleared ${result.deletedCount} notifications for user ${req.user._id}`);
     
     res.json({
       success: true,
-      message: 'All notifications cleared'
+      message: `${result.deletedCount} notifications cleared successfully`,
+      deletedCount: result.deletedCount
     });
   } catch (error) {
-    console.error('Clear all error:', error);
-    // Return success even if it fails
-    res.json({
-      success: true,
-      message: 'Request processed'
+    console.error('Clear all notifications error:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'MongoTimeoutError') {
+      return res.status(408).json({
+        success: false,
+        message: 'Database operation timed out. Please try again.'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear notifications. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

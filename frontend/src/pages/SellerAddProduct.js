@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiSave, FiX, FiUpload, FiTrash2 } from 'react-icons/fi';
 import SellerNavbar from '../components/Seller/SellerNavbar';
-import axios from 'axios';
+import ImageUpload from '../components/ImageUpload/ImageUpload';
+import { uploadsAPI, productsAPI, BASE_URL } from '../utils/api';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -294,8 +295,7 @@ const SellerAddProduct = () => {
     isActive: true
   });
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-  const SOCKET_URL = API_URL.replace('/api', '');
+  // Remove API_URL constants as we're using the imported APIs
 
   useEffect(() => {
     if (isEditMode) {
@@ -305,10 +305,7 @@ const SellerAddProduct = () => {
 
   const fetchProduct = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/seller/products/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await productsAPI.getProductById(id);
       
       if (response.data.success) {
         const product = response.data.data;
@@ -369,58 +366,7 @@ const SellerAddProduct = () => {
     setFormData(prev => ({ ...prev, features: newFeatures }));
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    try {
-      setUploading(true);
-      const token = localStorage.getItem('token');
-      const formDataToSend = new FormData();
-      
-      files.forEach(file => {
-        formDataToSend.append('productImages', file);
-      });
-
-      const response = await axios.post(`${API_URL}/upload/products`, formDataToSend, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (response.data.success) {
-        console.log('✅ Images uploaded:', response.data.data);
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, ...response.data.data]
-        }));
-        console.log('📦 Current product images:', [...formData.images, ...response.data.data]);
-      }
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      alert('Failed to upload images');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeImage = async (imageUrl) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/upload/delete`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { imageUrl }
-      });
-      
-      setFormData(prev => ({
-        ...prev,
-        images: prev.images.filter(img => img !== imageUrl)
-      }));
-    } catch (error) {
-      console.error('Error removing image:', error);
-    }
-  };
+  // Image upload functions moved to ImageUpload component
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -437,8 +383,6 @@ const SellerAddProduct = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
       const dataToSend = {
         ...formData,
         price: parseFloat(formData.price),
@@ -456,15 +400,9 @@ const SellerAddProduct = () => {
         }
       };
 
-      const url = isEditMode 
-        ? `${API_URL}/seller/products/${id}`
-        : `${API_URL}/seller/products`;
-      
-      const method = isEditMode ? 'put' : 'post';
-      
-      const response = await axios[method](url, dataToSend, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = isEditMode 
+        ? await productsAPI.updateProduct(id, dataToSend)
+        : await productsAPI.createProduct(dataToSend);
 
       if (response.data.success) {
         alert(`Product ${isEditMode ? 'updated' : 'created'} successfully!`);
@@ -658,43 +596,15 @@ const SellerAddProduct = () => {
             {/* Product Images */}
             <FormSection>
               <h3>Product Images</h3>
-              <ImageUploadSection>
-                <div className="upload-area">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                    id="image-upload"
-                    disabled={uploading}
-                  />
-                  <label htmlFor="image-upload" style={{ cursor: 'pointer' }}>
-                    <FiUpload style={{ fontSize: '2rem', color: '#3b82f6', marginBottom: '0.5rem' }} />
-                    <p style={{ margin: 0, color: '#374151', fontWeight: '600' }}>
-                      {uploading ? 'Uploading...' : 'Click to upload images'}
-                    </p>
-                    <small style={{ color: '#6b7280' }}>PNG, JPG up to 5MB</small>
-                  </label>
-                </div>
-
-                {formData.images.length > 0 && (
-                  <div className="images-preview">
-                    {formData.images.map((image, index) => (
-                      <div key={index} className="image-item">
-                        <img src={`${SOCKET_URL}${image}`} alt={`Product ${index + 1}`} />
-                        <button
-                          type="button"
-                          className="remove-btn"
-                          onClick={() => removeImage(image)}
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ImageUploadSection>
+              <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
+                Upload high-quality images of your product. The first image will be used as the main product image.
+              </p>
+              <ImageUpload
+                images={formData.images}
+                onImagesChange={(newImages) => setFormData(prev => ({ ...prev, images: newImages }))}
+                maxImages={10}
+                maxSize={5 * 1024 * 1024} // 5MB
+              />
             </FormSection>
 
             {/* Features */}

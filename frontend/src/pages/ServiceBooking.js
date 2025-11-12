@@ -12,8 +12,7 @@ import {
   FiUser,
   FiPackage,
   FiAlertCircle,
-  FiCheckCircle,
-  FiX
+  FiCheckCircle
 } from 'react-icons/fi';
 import { servicesAPI } from '../utils/api';
 import { toast } from 'react-toastify';
@@ -25,13 +24,13 @@ const ServiceBooking = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showConfirmation] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [createdBooking, setCreatedBooking] = useState(null);
   const [pricingInfo, setPricingInfo] = useState(null);
   const [distance, setDistance] = useState(10); // Initialize with default value
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsAccepted] = useState(false);
   const [formData, setFormData] = useState({
     serviceType: '',
     productType: '',
@@ -758,192 +757,7 @@ const SubmitButton = styled.button`
   }
 `;
 
-const ConfirmationModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  backdrop-filter: blur(4px);
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 20px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 2px solid #f1f5f9;
-
-  h2 {
-    font-size: 1.5rem;
-    color: #1e293b;
-    margin: 0;
-  }
-`;
-
-const CloseButton = styled.button`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: #f1f5f9;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #e2e8f0;
-    color: #1e293b;
-  }
-
-  svg {
-    font-size: 1.25rem;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 2rem;
-`;
-
-const ConfirmationSection = styled.div`
-  margin-bottom: 2rem;
-
-  &:last-of-type {
-    margin-bottom: 0;
-  }
-`;
-
-const ConfirmationSectionTitle = styled.h3`
-  font-size: 1.125rem;
-  color: #1e293b;
-  margin-bottom: 1rem;
-  font-weight: 600;
-`;
-
-const DetailRow = styled.div`
-  display: flex;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f1f5f9;
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const DetailLabel = styled.div`
-  flex: 0 0 140px;
-  font-weight: 600;
-  color: #64748b;
-  font-size: 0.95rem;
-`;
-
-const DetailValue = styled.div`
-  flex: 1;
-  color: #1e293b;
-  font-size: 0.95rem;
-`;
-
-const IssueText = styled.div`
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 10px;
-  color: #475569;
-  line-height: 1.6;
-  font-size: 0.95rem;
-`;
-
-const ConfirmationNote = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #eff6ff;
-  border: 1px solid #3b82f6;
-  border-radius: 10px;
-  margin-top: 1.5rem;
-
-  svg {
-    color: #3b82f6;
-    font-size: 1.25rem;
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-  }
-
-  span {
-    color: #1e40af;
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  gap: 1rem;
-  padding: 1.5rem 2rem;
-  border-top: 2px solid #f1f5f9;
-`;
-
-const CancelButton = styled.button`
-  flex: 1;
-  padding: 1rem 1.5rem;
-  background: #f1f5f9;
-  color: #64748b;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #e2e8f0;
-    color: #1e293b;
-  }
-`;
-
-const ConfirmButton = styled.button`
-  flex: 1;
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-// New styled components for pricing
+// Styled components for pricing
 const HelpText = styled.div`
   font-size: 0.875rem;
   color: #64748b;
