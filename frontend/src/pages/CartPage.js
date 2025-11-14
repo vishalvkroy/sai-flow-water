@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -499,14 +499,25 @@ const ShopNowButton = styled(Link)`
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { 
-    items, 
-    totalItems, 
-    totalPrice, 
-    loading, 
-    updateCartItem, 
-    removeFromCart 
-  } = useCart();
+  const { items, totalItems, totalPrice, loading, removeFromCart, updateCartItem, clearCart, fetchCart } = useCart();
+
+  // Clean up null items when cart loads
+  useEffect(() => {
+    const cleanupNullItems = async () => {
+      const nullItems = items.filter(item => !item.product);
+      if (nullItems.length > 0) {
+        console.log(`🧹 Found ${nullItems.length} corrupted cart items, cleaning up...`);
+        // Refresh cart to get clean data
+        if (fetchCart) {
+          await fetchCart();
+        }
+      }
+    };
+    
+    if (items.length > 0) {
+      cleanupNullItems();
+    }
+  }, [items, fetchCart]);
 
   const handleQuantityChange = async (productId, newQuantity) => {
     if (newQuantity < 1) return;
@@ -541,7 +552,10 @@ const CartPage = () => {
     );
   }
 
-  if (items.length === 0) {
+  // Filter valid items (items with products)
+  const validItems = items.filter(item => item.product);
+  
+  if (validItems.length === 0) {
     return (
       <PageContainer>
         <Container>
@@ -580,12 +594,12 @@ const CartPage = () => {
         <CartContent>
           <CartItems>
             <CartItemsHeader>
-              <h2>Cart Items ({totalItems})</h2>
+              <h2>Cart Items ({validItems.length})</h2>
             </CartItemsHeader>
             
             <CartItemsList>
               <AnimatePresence>
-                {items.map((item, index) => (
+                {items.filter(item => item.product).map((item, index) => (
                   <CartItem
                     key={`cart-item-${item.product?._id || item._id || index}`}
                     initial={{ opacity: 0, x: -20 }}
