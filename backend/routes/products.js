@@ -2,8 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const { protect, authorize } = require('../middleware/auth');
-const { permanentDeleteProduct, cleanupOrphanedImages } = require('../controllers/productController');
+// Debug: Check what's being imported
+const productController = require('../controllers/productController');
+console.log('🔍 Product controller exports:', Object.keys(productController));
+
+const { permanentDeleteProduct, cleanupOrphanedImages } = productController;
 const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
+
+// Debug: Check if functions exist
+console.log('🔍 permanentDeleteProduct:', typeof permanentDeleteProduct);
+console.log('🔍 cleanupOrphanedImages:', typeof cleanupOrphanedImages);
 
 // @desc    Get all products
 // @route   GET /api/products
