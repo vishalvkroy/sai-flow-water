@@ -14,6 +14,7 @@ import AppLayout from './components/Layout/AppLayout';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import RoleProtectedRoute from './components/Common/RoleProtectedRoute';
 import ConnectionStatus from './components/Common/ConnectionStatus';
+import ErrorBoundary from './components/ErrorBoundary';
 import Chatbot from './components/Chatbot';
 import ChatbotSimple from './components/ChatbotSimple';
 
@@ -23,6 +24,7 @@ import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
 import CartPage from './pages/CartPage';
 import Checkout from './pages/Checkout';
+import CheckoutSafe from './pages/CheckoutSafe';
 import Booking from './pages/Booking';
 import ServiceBooking from './pages/ServiceBooking';
 import TrackOrder from './pages/TrackOrder';
@@ -80,7 +82,9 @@ function App() {
                   path="/checkout" 
                   element={
                     <ProtectedRoute>
-                      <Checkout />
+                      <ErrorBoundary>
+                        <CheckoutSafe />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   } 
                 />
