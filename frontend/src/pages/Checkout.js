@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -469,6 +469,21 @@ const Checkout = () => {
   const { items, totalItems, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Filter valid items (items with products) to prevent null reference errors
+  const validItems = useMemo(() => {
+    try {
+      return items.filter(item => {
+        return item && 
+               item.product && 
+               item.product._id && 
+               item.product.name;
+      });
+    } catch (error) {
+      console.error('Error filtering checkout items:', error);
+      return [];
+    }
+  }, [items]);
   
   const [loading, setLoading] = useState(false);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
@@ -515,12 +530,12 @@ const Checkout = () => {
       return;
     }
     
-    if (!items || items.length === 0) {
+    if (!validItems || validItems.length === 0) {
       toast.error('Your cart is empty');
       navigate('/cart');
       return;
     }
-  }, [user, items, navigate]);
+  }, [user, validItems, navigate]);
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
@@ -549,7 +564,7 @@ const Checkout = () => {
         city: address.city,
         state: address.state,
         pincode: address.postalCode,
-        items: items.map(item => ({
+        items: validItems.map(item => ({
           product: item.product?._id || item.productId,
           quantity: item.quantity
         }))
@@ -835,7 +850,7 @@ const Checkout = () => {
   const shipping = deliveryInfo ? deliveryInfo.deliveryCharge : 0;
   const total = subtotal + tax + shipping;
 
-  if (!items || items.length === 0) {
+  if (!validItems || validItems.length === 0) {
     return null;
   }
 
@@ -1283,26 +1298,26 @@ const Checkout = () => {
                 </div>
                 
                 <div>
-                  {items.map((item) => (
+                  {validItems.map((item) => (
                     <OrderItem key={item.product._id}>
                       <ItemImage
-                        src={getImageUrl(item.product.images?.[0]) || '/default-product.jpg'}
-                        alt={item.product.name}
+                        src={getImageUrl(item.product?.images?.[0]) || '/default-product.jpg'}
+                        alt={item.product?.name || 'Product'}
                         onError={(e) => {
                           e.target.src = '/default-product.jpg';
                         }}
                       />
                       <ItemDetails>
-                        <h4>{item.product.name}</h4>
-                        <p>SKU: {item.product.sku}</p>
-                        <p className="quantity">Qty: {item.quantity}</p>
+                        <h4>{item.product?.name || 'Unknown Product'}</h4>
+                        <p>SKU: {item.product?.sku || 'N/A'}</p>
+                        <p className="quantity">Qty: {item.quantity || 1}</p>
                       </ItemDetails>
                       <ItemPrice>
                         <div className="price">
-                          {formatCurrency(item.price * item.quantity)}
+                          ₹{((item.product?.price || 0) * (item.quantity || 1)).toLocaleString()}
                         </div>
                         <div className="quantity">
-                          {formatCurrency(item.price)} each
+                          ₹{(item.product?.price || 0).toLocaleString()} each
                         </div>
                       </ItemPrice>
                     </OrderItem>
