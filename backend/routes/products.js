@@ -105,6 +105,7 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/featured', async (req, res) => {
   try {
+    console.log('🌟 Fetching featured products...');
     const products = await Product.find({ 
       isFeatured: true, 
       isActive: true,
@@ -114,6 +115,8 @@ router.get('/featured', async (req, res) => {
     .select('-__v')
     .populate('seller', 'name email')
     .sort({ createdAt: -1 });
+    
+    console.log(`✅ Found ${products.length} featured products`);
     
     res.json({
       success: true,
@@ -135,6 +138,7 @@ router.get('/featured', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
+    
     const product = await Product.findById(req.params.id)
       .select('-__v')
       .populate('seller', 'name email phone');

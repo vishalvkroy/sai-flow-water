@@ -219,13 +219,25 @@ const Home = () => {
 
   const fetchFeaturedProducts = async () => {
     try {
+      console.log('🔄 Fetching featured products from API...');
+      console.log('🌐 API Base URL:', process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
       const response = await productsAPI.getFeaturedProducts();
+      console.log('📡 API Response:', response.data);
+      console.log('📡 Response status:', response.status);
+      
       if (response.data.success) {
-        setFeaturedProducts(response.data.data);
+        const products = response.data.data || [];
+        setFeaturedProducts(products);
+        console.log('✅ Featured products loaded:', products.length);
+        console.log('📦 Products data:', products.map(p => ({ id: p._id, name: p.name, images: p.images?.length || 0 })));
+      } else {
+        console.warn('⚠️ Featured products API returned success: false');
+        setFeaturedProducts([]);
       }
     } catch (error) {
       // Use professional error handling but don't show toast for this
-      console.error('Error fetching featured products:', error);
+      console.error('❌ Error fetching featured products:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
       setFeaturedProducts([]);
       
       // Only show error if it's not a network issue (server might be starting)

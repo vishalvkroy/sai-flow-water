@@ -115,7 +115,9 @@ const ProductsContent = styled.div`
   }
 `;
 
-const FiltersSection = styled(motion.div)`
+const FiltersSection = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => prop !== 'isFiltersOpen'
+})`
   background: white;
   border-radius: 16px;
   padding: 1.5rem;

@@ -213,14 +213,30 @@ const EmptyState = styled.div`
 
 const ProductGrid = ({ products = [] }) => {
   const { addToCart } = useCart();
+  
+  // Debug logging
+  console.log('🔍 ProductGrid received products:', products.length);
+  if (products.length > 0) {
+    console.log('📦 First product sample:', {
+      id: products[0]._id,
+      name: products[0].name,
+      images: products[0].images?.length || 0,
+      price: products[0].price
+    });
+  }
 
   const handleAddToCart = async (product) => {
     try {
+      if (!product || !product._id) {
+        toast.error('Invalid product data');
+        return;
+      }
       await addToCart(product._id, 1);
       toast.success(`${product.name} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
-      toast.error('Failed to add to cart');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to add to cart';
+      toast.error(errorMessage);
     }
   };
 
@@ -277,11 +293,14 @@ const ProductGrid = ({ products = [] }) => {
                 src={getImageUrl(product.images[0])} 
                 alt={product.name}
                 onError={(e) => handleImageError(e, 'product')}
+                loading="lazy"
+                crossOrigin="anonymous"
               />
             ) : (
               <img 
                 src={FALLBACK_NO_IMAGE}
                 alt={product.name}
+                loading="lazy"
               />
             )}
           </ProductImage>
@@ -293,13 +312,19 @@ const ProductGrid = ({ products = [] }) => {
             <ProductPrice><span>₹{product.price?.toLocaleString('en-IN') || 0}</span></ProductPrice>
             
             <ProductActions>
-              <ActionButton className="secondary" as={Link} to={`/product/${product._id}`}>
+              <ActionButton 
+                className="secondary" 
+                as={product._id ? Link : 'button'} 
+                to={product._id ? `/product/${product._id}` : undefined}
+                onClick={!product._id ? () => toast.error('Product details not available') : undefined}
+              >
                 <FiEye />
                 View Details
               </ActionButton>
               <ActionButton 
                 className="primary"
                 onClick={() => handleAddToCart(product)}
+                disabled={!product._id}
               >
                 <FiShoppingCart />
                 Add to Cart

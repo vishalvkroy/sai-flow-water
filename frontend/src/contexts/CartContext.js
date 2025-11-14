@@ -115,6 +115,13 @@ export const CartProvider = ({ children }) => {
   // Add item to cart
   const addToCart = async (productId, quantity = 1) => {
     try {
+      // Validate product ID
+      if (!productId) {
+        const errorMessage = 'Invalid product ID';
+        showError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
       // Check if user is authenticated
       const token = localStorage.getItem('token');
       if (!token) {
@@ -125,13 +132,33 @@ export const CartProvider = ({ children }) => {
       }
 
       dispatch({ type: 'SET_LOADING', payload: true });
+      console.log('🛒 Adding to cart:', { productId, quantity });
+      
       const response = await cartAPI.addToCart(productId, quantity);
-      dispatch({ type: 'ADD_ITEM_SUCCESS', payload: response.data.data });
-      showSuccess('Item added to cart successfully!');
-      return response.data.data;
+      
+      if (response.data.success) {
+        dispatch({ type: 'ADD_ITEM_SUCCESS', payload: response.data.data });
+        showSuccess('Item added to cart successfully!');
+        console.log('✅ Item added to cart successfully');
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to add item to cart');
+      }
     } catch (error) {
-      console.error('Add to cart error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to add item to cart';
+      console.error('❌ Add to cart error:', error);
+      let errorMessage = 'Failed to add item to cart';
+      
+      if (error.response?.status === 400) {
+        errorMessage = error.response.data?.message || 'Invalid product or quantity';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Product not found or out of stock';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Please login to add items to cart';
+        navigate('/login');
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       showError(errorMessage);
       throw error;
