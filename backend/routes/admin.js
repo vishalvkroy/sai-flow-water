@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Cart = require('../models/Cart');
 const { protect, authorize } = require('../middleware/auth');
+const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
 
 // Sample products data
 const sampleProducts = [
@@ -346,122 +347,81 @@ router.post('/cleanup-carts', protect, authorize('admin', 'seller'), async (req,
   }
 });
 
-// @desc    Clean up orphaned images from Cloudinary
-// @route   POST /api/admin/cleanup-images
+// @desc    Bulk delete products with images
+// @route   POST /api/admin/bulk-delete-products
 // @access  Private/Admin
-router.post('/cleanup-images', protect, authorize('admin', 'seller'), async (req, res) => {
+router.post('/bulk-delete-products', protect, authorize('admin'), async (req, res) => {
   try {
-    console.log('🧹 Admin request to cleanup orphaned images...');
-
-    const Product = require('../models/Product');
-    const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
-    const cloudinary = require('cloudinary').v2;
-
-    // Get all product images from database
-    const products = await Product.find({}, 'images');
-    const usedImages = new Set();
+    const { productIds, deleteImages = true } = req.body;
     
-    products.forEach(product => {
-      if (product.images && Array.isArray(product.images)) {
-        product.images.forEach(imageUrl => {
-          if (imageUrl && imageUrl.includes('cloudinary.com')) {
-            const publicId = getPublicIdFromUrl(imageUrl);
-            if (publicId) {
-              usedImages.add(publicId);
-            }
-          }
-        });
-      }
-    });
-
-    console.log(`📊 Found ${usedImages.size} images in use across ${products.length} products`);
-
-    // Get all images from Cloudinary folder
-    console.log('🔍 Fetching images from Cloudinary...');
-    const cloudinaryImages = [];
-    let nextCursor = null;
-
-    do {
-      const result = await cloudinary.search
-        .expression('folder:arroh-water-filter')
-        .sort_by([['created_at', 'desc']])
-        .max_results(500)
-        .next_cursor(nextCursor)
-        .execute();
-
-      cloudinaryImages.push(...result.resources);
-      nextCursor = result.next_cursor;
-      
-      console.log(`📥 Fetched ${result.resources.length} images (total: ${cloudinaryImages.length})`);
-    } while (nextCursor);
-
-    // Find orphaned images
-    const orphanedImages = cloudinaryImages.filter(image => {
-      return !usedImages.has(image.public_id);
-    });
-
-    console.log(`🗑️ Found ${orphanedImages.length} orphaned images`);
-
-    if (orphanedImages.length === 0) {
-      return res.json({
-        success: true,
-        message: 'No orphaned images found! Your Cloudinary is clean.',
-        data: {
-          totalImages: cloudinaryImages.length,
-          usedImages: usedImages.size,
-          orphanedImages: 0,
-          deletedImages: 0,
-          spaceSaved: '0 MB'
-        }
+    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product IDs array is required'
       });
     }
 
-    // Calculate space savings
-    const totalBytes = orphanedImages.reduce((sum, img) => sum + img.bytes, 0);
-    const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+    console.log(`🗑️  Bulk deleting ${productIds.length} products...`);
+    
+    const results = {
+      productsDeleted: 0,
+      imagesDeleted: 0,
+      imagesFailed: 0,
+      errors: []
+    };
 
-    let deletedCount = 0;
-    let failedCount = 0;
-
-    // Delete orphaned images
-    for (const image of orphanedImages) {
+    for (const productId of productIds) {
       try {
-        const result = await deleteImage(image.public_id);
-        if (result.result === 'ok') {
-          deletedCount++;
-          console.log(`✅ Deleted: ${image.public_id}`);
-        } else {
-          failedCount++;
-          console.log(`❌ Failed to delete: ${image.public_id} - ${result.result}`);
+        const product = await Product.findById(productId);
+        
+        if (!product) {
+          results.errors.push({ productId, error: 'Product not found' });
+          continue;
         }
+
+        // Delete images from Cloudinary if requested
+        if (deleteImages && product.images && product.images.length > 0) {
+          for (const imageUrl of product.images) {
+            try {
+              const publicId = getPublicIdFromUrl(imageUrl);
+              if (publicId) {
+                const result = await deleteImage(publicId);
+                if (result.result === 'ok') {
+                  results.imagesDeleted++;
+                } else {
+                  results.imagesFailed++;
+                }
+              }
+            } catch (error) {
+              results.imagesFailed++;
+              console.error(`Failed to delete image ${imageUrl}:`, error.message);
+            }
+          }
+        }
+
+        // Delete product
+        await Product.findByIdAndDelete(productId);
+        results.productsDeleted++;
+        
+        console.log(`✅ Deleted product: ${product.name}`);
+        
       } catch (error) {
-        failedCount++;
-        console.error(`❌ Error deleting ${image.public_id}:`, error.message);
+        results.errors.push({ productId, error: error.message });
+        console.error(`Error deleting product ${productId}:`, error);
       }
     }
 
-    const spaceSaved = ((deletedCount / orphanedImages.length) * parseFloat(totalMB)).toFixed(2);
-
-    console.log(`✅ Image cleanup completed: ${deletedCount} deleted, ${failedCount} failed`);
-
     res.json({
       success: true,
-      message: `Successfully cleaned up orphaned images`,
-      data: {
-        totalImages: cloudinaryImages.length,
-        usedImages: usedImages.size,
-        orphanedImages: orphanedImages.length,
-        deletedImages: deletedCount,
-        failedDeletes: failedCount,
-        spaceSaved: `${spaceSaved} MB`
-      }
+      message: `Bulk delete completed`,
+      data: results
     });
 
   } catch (error) {
-    console.error('❌ Error cleaning up images:', error);
+    console.error('❌ Bulk delete error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to cleanup images',
+      message: 'Failed to bulk delete products',
       error: error.message
     });
   }

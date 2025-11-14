@@ -58,11 +58,16 @@ const cartSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Calculate totals before saving
+// Calculate totals before saving (only count valid items with products)
 cartSchema.pre('save', function(next) {
-  this.totalItems = this.items.reduce((total, item) => total + item.quantity, 0);
-  this.totalPrice = this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Filter out items with null products before calculating totals
+  const validItems = this.items.filter(item => item.product);
+  
+  this.totalItems = validItems.reduce((total, item) => total + item.quantity, 0);
+  this.totalPrice = validItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   this.lastUpdated = new Date();
+  
+  console.log(`📊 Cart totals calculated: ${this.totalItems} items from ${validItems.length}/${this.items.length} valid/total items`);
   next();
 });
 

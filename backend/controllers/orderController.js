@@ -19,6 +19,7 @@ try {
 // @access  Private
 const createOrderFromCart = async (req, res) => {
   try {
+    console.log('🛒 Creating order from cart for user:', req.user._id);
     const { shippingAddress, paymentMethod } = req.body;
 
     // Validate required fields
@@ -31,6 +32,7 @@ const createOrderFromCart = async (req, res) => {
 
     // Get user's cart
     const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+    console.log('📦 Cart found:', cart ? `${cart.items.length} items` : 'No cart');
     
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({
@@ -39,9 +41,20 @@ const createOrderFromCart = async (req, res) => {
       });
     }
 
-    // Validate stock and prepare order items
+    // Filter out items with null products and validate stock
+    const validItems = cart.items.filter(item => item.product);
+    console.log(`🔍 Filtered ${cart.items.length} items down to ${validItems.length} valid items`);
+    
+    if (validItems.length === 0) {
+      console.log('❌ No valid items found in cart');
+      return res.status(400).json({
+        success: false,
+        message: 'No valid items in cart'
+      });
+    }
+    
     const orderItems = [];
-    for (const item of cart.items) {
+    for (const item of validItems) {
       // Get product ID - handle both populated and non-populated cases
       const productId = item.product._id || item.product;
       const product = await Product.findById(productId);

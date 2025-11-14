@@ -14,6 +14,15 @@ router.get('/', protect, async (req, res) => {
     // Populate product details
     await cart.populate('items.product');
     
+    // Filter out items with null products and save if any were removed
+    const originalItemsCount = cart.items.length;
+    cart.items = cart.items.filter(item => item.product);
+    
+    if (cart.items.length !== originalItemsCount) {
+      console.log(`🧹 Removed ${originalItemsCount - cart.items.length} corrupted items from cart`);
+      await cart.save(); // This will recalculate totals with the pre-save hook
+    }
+    
     res.json({
       success: true,
       data: cart
@@ -85,6 +94,15 @@ router.post('/add', protect, async (req, res) => {
     
     // Populate and return updated cart
     await cart.populate('items.product');
+    
+    // Filter out any items with null products (cleanup)
+    const originalItemsCount = cart.items.length;
+    cart.items = cart.items.filter(item => item.product);
+    
+    if (cart.items.length !== originalItemsCount) {
+      console.log(`🧹 Cleaned ${originalItemsCount - cart.items.length} corrupted items during add to cart`);
+      await cart.save(); // Recalculate totals
+    }
 
     res.json({
       success: true,
