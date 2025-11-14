@@ -2,16 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const { protect, authorize } = require('../middleware/auth');
-// Debug: Check what's being imported
-const productController = require('../controllers/productController');
-console.log('🔍 Product controller exports:', Object.keys(productController));
-
-const { permanentDeleteProduct, cleanupOrphanedImages } = productController;
-const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
-
-// Debug: Check if functions exist
-console.log('🔍 permanentDeleteProduct:', typeof permanentDeleteProduct);
-console.log('🔍 cleanupOrphanedImages:', typeof cleanupOrphanedImages);
+// Temporarily removed problematic imports
+// const { permanentDeleteProduct, cleanupOrphanedImages } = require('../controllers/productController');
+// const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -330,14 +323,16 @@ router.get('/seller/my-products', protect, authorize('seller', 'admin'), async (
 });
 
 // @desc    Permanently delete product and its images
-// @route   DELETE /api/products/:id/permanent
+// @route   DELETE /api/products/:id/permanent  
 // @access  Private/Admin
-router.delete('/:id/permanent', protect, authorize('admin', 'seller'), permanentDeleteProduct);
+// Temporarily disabled due to import issues
+// router.delete('/:id/permanent', protect, authorize('admin', 'seller'), permanentDeleteProduct);
 
 // @desc    Clean up orphaned images
 // @route   POST /api/products/cleanup-images
 // @access  Private/Admin
-router.post('/cleanup-images', protect, authorize('admin'), cleanupOrphanedImages);
+// Temporarily disabled due to import issues
+// router.post('/cleanup-images', protect, authorize('admin'), cleanupOrphanedImages);
 
 // Mount review routes
 const reviewRoutes = require('./reviews');
