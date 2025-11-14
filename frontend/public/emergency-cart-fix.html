@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Cart Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🚨 Emergency Cart Fix</h1>
+    <p>If your cart page is crashing, click the button below to clear corrupted cart data:</p>
+    
+    <button onclick="clearCartData()" style="background: #f44336; color: white; border: none; border-radius: 5px;">
+        🧹 Clear Cart Data & Refresh
+    </button>
+    
+    <button onclick="cleanupCarts()" style="background: #2196F3; color: white; border: none; border-radius: 5px;">
+        🔧 Server Cleanup (Login Required)
+    </button>
+    
+    <div id="result" style="margin-top: 20px;"></div>
+    
+    <script>
+        function clearCartData() {
+            try {
+                // Clear all cart-related data
+                localStorage.removeItem('cart');
+                localStorage.removeItem('cartItems');
+                localStorage.removeItem('cartData');
+                sessionStorage.removeItem('cart');
+                sessionStorage.removeItem('cartItems');
+                
+                document.getElementById('result').innerHTML = '<p class="success">✅ Cart data cleared! Redirecting to home page...</p>';
+                
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+            }
+        }
+        
+        function cleanupCarts() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('result').innerHTML = '<p class="error">❌ Please login first!</p>';
+                return;
+            }
+            
+            fetch('https://sai-flow-water.onrender.com/api/admin/cleanup-carts', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('result').innerHTML = `<p class="success">✅ Server cleanup successful! Cleaned ${data.data.cartsCleaned} carts, removed ${data.data.itemsRemoved} corrupted items. Redirecting...</p>`;
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                } else {
+                    document.getElementById('result').innerHTML = '<p class="error">❌ Server cleanup failed: ' + data.message + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = '<p class="error">❌ Network error: ' + error.message + '</p>';
+                // Fallback to local cleanup
+                clearCartData();
+            });
+        }
+    </script>
+</body>
+</html>

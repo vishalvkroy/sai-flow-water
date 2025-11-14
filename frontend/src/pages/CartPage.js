@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -552,8 +552,21 @@ const CartPage = () => {
     );
   }
 
-  // Filter valid items (items with products)
-  const validItems = items.filter(item => item.product);
+  // Filter valid items (items with products) with error handling
+  const validItems = React.useMemo(() => {
+    try {
+      return items.filter(item => {
+        return item && 
+               item.product && 
+               item.product._id && 
+               item.product.name &&
+               Array.isArray(item.product.images);
+      });
+    } catch (error) {
+      console.error('Error filtering cart items:', error);
+      return [];
+    }
+  }, [items]);
   
   if (validItems.length === 0) {
     return (
@@ -599,69 +612,87 @@ const CartPage = () => {
             
             <CartItemsList>
               <AnimatePresence>
-                {items.filter(item => item.product).map((item, index) => (
-                  <CartItem
-                    key={`cart-item-${item.product?._id || item._id || index}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <ItemImage>
-                      <img 
-                        src={getImageUrl(item.product?.images?.[0])} 
-                        alt={item.product?.name || 'Product'}
-                        onError={(e) => {
-                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
-                        }}
-                        loading="lazy"
-                        crossOrigin="anonymous"
-                      />
-                    </ItemImage>
-                    
-                    <ItemDetails>
-                      <h3>
-                        <Link to={`/product/${item.product?._id || '#'}`}>
-                          {item.product?.name || 'Unknown Product'}
-                        </Link>
-                      </h3>
-                      <div className="price">₹{(item.product?.price || 0).toLocaleString('en-IN')}</div>
-                      <div className={`stock-status ${(item.product?.stock || 0) <= 5 ? 'low-stock' : ''}`}>
-                        {(item.product?.stock || 0) > 0 ? `${item.product.stock} in stock` : 'Out of stock'}
+                {(() => {
+                  try {
+                    return validItems.map((item, index) => {
+                      // Additional safety check
+                      if (!item || !item.product || !item.product.images) {
+                        return null;
+                      }
+                      
+                      return (
+                        <CartItem
+                          key={`cart-item-${item.product._id || item._id || index}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <ItemImage>
+                            <img 
+                              src={getImageUrl(item.product.images[0] || '')} 
+                              alt={item.product.name || 'Product'}
+                              onError={(e) => {
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                              }}
+                              loading="lazy"
+                              crossOrigin="anonymous"
+                            />
+                          </ItemImage>
+                          <ItemDetails>
+                            <h3>
+                              <Link to={`/product/${item.product?._id || '#'}`}>
+                                {item.product?.name || 'Unknown Product'}
+                              </Link>
+                            </h3>
+                            <div className="price">₹{(item.product?.price || 0).toLocaleString('en-IN')}</div>
+                            <div className={`stock-status ${(item.product?.stock || 0) <= 5 ? 'low-stock' : ''}`}>
+                              {(item.product?.stock || 0) > 0 ? `${item.product.stock} in stock` : 'Out of stock'}
+                            </div>
+                          </ItemDetails>
+                          
+                          <ItemActions>
+                            <QuantityControl>
+                              <QuantityButton
+                                onClick={() => handleQuantityChange(item.product?._id, item.quantity - 1)}
+                                disabled={item.quantity <= 1 || loading || !item.product}
+                              >
+                                <FiMinus />
+                              </QuantityButton>
+                              <QuantityDisplay>{item.quantity || 0}</QuantityDisplay>
+                              <QuantityButton
+                                onClick={() => handleQuantityChange(item.product?._id, item.quantity + 1)}
+                                disabled={item.quantity >= (item.product?.stock || 0) || loading || !item.product}
+                              >
+                                <FiPlus />
+                              </QuantityButton>
+                            </QuantityControl>
+                            
+                            <ItemSubtotal>
+                              ₹{((item.product?.price || 0) * (item.quantity || 0)).toLocaleString()}
+                            </ItemSubtotal>
+                            
+                            <RemoveButton
+                              onClick={() => handleRemoveItem(item.product?._id)}
+                              disabled={loading || !item.product}
+                            >
+                              <FiTrash2 />
+                              Remove
+                            </RemoveButton>
+                          </ItemActions>
+                        </CartItem>
+                      );
+                    }).filter(Boolean); // Remove any null items
+                  } catch (error) {
+                    console.error('Error rendering cart items:', error);
+                    return (
+                      <div style={{padding: '20px', textAlign: 'center'}}>
+                        <p>Error loading cart items. Please refresh the page.</p>
+                        <button onClick={() => window.location.reload()}>Refresh</button>
                       </div>
-                    </ItemDetails>
-                    
-                    <ItemActions>
-                      <QuantityControl>
-                        <QuantityButton
-                          onClick={() => handleQuantityChange(item.product?._id, item.quantity - 1)}
-                          disabled={item.quantity <= 1 || loading || !item.product}
-                        >
-                          <FiMinus />
-                        </QuantityButton>
-                        <QuantityDisplay>{item.quantity || 0}</QuantityDisplay>
-                        <QuantityButton
-                          onClick={() => handleQuantityChange(item.product?._id, item.quantity + 1)}
-                          disabled={item.quantity >= (item.product?.stock || 0) || loading || !item.product}
-                        >
-                          <FiPlus />
-                        </QuantityButton>
-                      </QuantityControl>
-                      
-                      <ItemSubtotal>
-                        ₹{((item.product?.price || 0) * (item.quantity || 0)).toLocaleString()}
-                      </ItemSubtotal>
-                      
-                      <RemoveButton
-                        onClick={() => handleRemoveItem(item.product?._id)}
-                        disabled={loading || !item.product}
-                      >
-                        <FiTrash2 />
-                        Remove
-                      </RemoveButton>
-                    </ItemActions>
-                  </CartItem>
-                ))}
+                    );
+                  }
+                })()}
               </AnimatePresence>
             </CartItemsList>
           </CartItems>
