@@ -184,6 +184,36 @@ const ItemDetails = styled.div`
   }
 `;
 
+const ItemName = styled.h3`
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+`;
+
+const ItemDescription = styled.p`
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.4;
+`;
+
+const ItemPrice = styled.div`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #059669;
+  margin: 0.5rem 0;
+`;
+
+const QuantityControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+`;
+
 const ItemActions = styled.div`
   display: flex;
   flex-direction: column;
@@ -501,6 +531,21 @@ const CartPage = () => {
   const navigate = useNavigate();
   const { items, totalItems, totalPrice, loading, removeFromCart, updateCartItem, clearCart, fetchCart } = useCart();
 
+  // Filter valid items (items with products) with error handling - MUST be at top level
+  const validItems = useMemo(() => {
+    try {
+      return items.filter(item => {
+        return item && 
+               item.product && 
+               item.product._id && 
+               item.product.name;
+      });
+    } catch (error) {
+      console.error('Error filtering cart items:', error);
+      return [];
+    }
+  }, [items]);
+
   // Clean up null items when cart loads
   useEffect(() => {
     const cleanupNullItems = async () => {
@@ -552,22 +597,6 @@ const CartPage = () => {
     );
   }
 
-  // Filter valid items (items with products) with error handling
-  const validItems = React.useMemo(() => {
-    try {
-      return items.filter(item => {
-        return item && 
-               item.product && 
-               item.product._id && 
-               item.product.name &&
-               Array.isArray(item.product.images);
-      });
-    } catch (error) {
-      console.error('Error filtering cart items:', error);
-      return [];
-    }
-  }, [items]);
-  
   if (validItems.length === 0) {
     return (
       <PageContainer>
