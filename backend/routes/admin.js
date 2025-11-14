@@ -346,4 +346,125 @@ router.post('/cleanup-carts', protect, authorize('admin', 'seller'), async (req,
   }
 });
 
+// @desc    Clean up orphaned images from Cloudinary
+// @route   POST /api/admin/cleanup-images
+// @access  Private/Admin
+router.post('/cleanup-images', protect, authorize('admin', 'seller'), async (req, res) => {
+  try {
+    console.log('🧹 Admin request to cleanup orphaned images...');
+
+    const Product = require('../models/Product');
+    const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
+    const cloudinary = require('cloudinary').v2;
+
+    // Get all product images from database
+    const products = await Product.find({}, 'images');
+    const usedImages = new Set();
+    
+    products.forEach(product => {
+      if (product.images && Array.isArray(product.images)) {
+        product.images.forEach(imageUrl => {
+          if (imageUrl && imageUrl.includes('cloudinary.com')) {
+            const publicId = getPublicIdFromUrl(imageUrl);
+            if (publicId) {
+              usedImages.add(publicId);
+            }
+          }
+        });
+      }
+    });
+
+    console.log(`📊 Found ${usedImages.size} images in use across ${products.length} products`);
+
+    // Get all images from Cloudinary folder
+    console.log('🔍 Fetching images from Cloudinary...');
+    const cloudinaryImages = [];
+    let nextCursor = null;
+
+    do {
+      const result = await cloudinary.search
+        .expression('folder:arroh-water-filter')
+        .sort_by([['created_at', 'desc']])
+        .max_results(500)
+        .next_cursor(nextCursor)
+        .execute();
+
+      cloudinaryImages.push(...result.resources);
+      nextCursor = result.next_cursor;
+      
+      console.log(`📥 Fetched ${result.resources.length} images (total: ${cloudinaryImages.length})`);
+    } while (nextCursor);
+
+    // Find orphaned images
+    const orphanedImages = cloudinaryImages.filter(image => {
+      return !usedImages.has(image.public_id);
+    });
+
+    console.log(`🗑️ Found ${orphanedImages.length} orphaned images`);
+
+    if (orphanedImages.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No orphaned images found! Your Cloudinary is clean.',
+        data: {
+          totalImages: cloudinaryImages.length,
+          usedImages: usedImages.size,
+          orphanedImages: 0,
+          deletedImages: 0,
+          spaceSaved: '0 MB'
+        }
+      });
+    }
+
+    // Calculate space savings
+    const totalBytes = orphanedImages.reduce((sum, img) => sum + img.bytes, 0);
+    const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+
+    let deletedCount = 0;
+    let failedCount = 0;
+
+    // Delete orphaned images
+    for (const image of orphanedImages) {
+      try {
+        const result = await deleteImage(image.public_id);
+        if (result.result === 'ok') {
+          deletedCount++;
+          console.log(`✅ Deleted: ${image.public_id}`);
+        } else {
+          failedCount++;
+          console.log(`❌ Failed to delete: ${image.public_id} - ${result.result}`);
+        }
+      } catch (error) {
+        failedCount++;
+        console.error(`❌ Error deleting ${image.public_id}:`, error.message);
+      }
+    }
+
+    const spaceSaved = ((deletedCount / orphanedImages.length) * parseFloat(totalMB)).toFixed(2);
+
+    console.log(`✅ Image cleanup completed: ${deletedCount} deleted, ${failedCount} failed`);
+
+    res.json({
+      success: true,
+      message: `Successfully cleaned up orphaned images`,
+      data: {
+        totalImages: cloudinaryImages.length,
+        usedImages: usedImages.size,
+        orphanedImages: orphanedImages.length,
+        deletedImages: deletedCount,
+        failedDeletes: failedCount,
+        spaceSaved: `${spaceSaved} MB`
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error cleaning up images:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cleanup images',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

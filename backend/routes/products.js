@@ -250,7 +250,8 @@ router.put('/:id', protect, authorize('seller', 'admin'), async (req, res) => {
 // @access  Private (Seller only)
 router.delete('/:id', protect, authorize('seller', 'admin'), async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    // First, find the product to get image URLs
+    const product = await Product.findById(req.params.id);
     
     if (!product) {
       return res.status(404).json({
@@ -258,10 +259,71 @@ router.delete('/:id', protect, authorize('seller', 'admin'), async (req, res) =>
         message: 'Product not found'
       });
     }
+
+    console.log(`🗑️ Deleting product: ${product.name} with ${product.images?.length || 0} images`);
+
+    // Delete images from Cloudinary
+    const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
+    const imageDeleteResults = [];
+
+    if (product.images && product.images.length > 0) {
+      for (const imageUrl of product.images) {
+        try {
+          if (imageUrl.includes('cloudinary.com')) {
+            const publicId = getPublicIdFromUrl(imageUrl);
+            if (publicId) {
+              console.log(`🧹 Deleting Cloudinary image: ${publicId}`);
+              const result = await deleteImage(publicId);
+              imageDeleteResults.push({
+                url: imageUrl,
+                publicId: publicId,
+                result: result.result,
+                success: result.result === 'ok' || result.result === 'not found'
+              });
+            } else {
+              console.warn(`⚠️ Could not extract public ID from: ${imageUrl}`);
+              imageDeleteResults.push({
+                url: imageUrl,
+                success: false,
+                error: 'Could not extract public ID'
+              });
+            }
+          } else {
+            console.log(`📁 Skipping non-Cloudinary image: ${imageUrl}`);
+            imageDeleteResults.push({
+              url: imageUrl,
+              success: true,
+              note: 'Non-Cloudinary image, skipped'
+            });
+          }
+        } catch (imageError) {
+          console.error(`❌ Error deleting image ${imageUrl}:`, imageError);
+          imageDeleteResults.push({
+            url: imageUrl,
+            success: false,
+            error: imageError.message
+          });
+        }
+      }
+    }
+
+    // Now delete the product from database
+    await Product.findByIdAndDelete(req.params.id);
+
+    const successfulImageDeletes = imageDeleteResults.filter(r => r.success).length;
+    const totalImages = imageDeleteResults.length;
+
+    console.log(`✅ Product deleted successfully. Images: ${successfulImageDeletes}/${totalImages} deleted from Cloudinary`);
     
     res.json({
       success: true,
-      message: 'Product deleted successfully'
+      message: 'Product and associated images deleted successfully',
+      details: {
+        productName: product.name,
+        imagesDeleted: successfulImageDeletes,
+        totalImages: totalImages,
+        imageResults: imageDeleteResults
+      }
     });
   } catch (error) {
     console.error('Delete product error:', error);
