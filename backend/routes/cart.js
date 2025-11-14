@@ -70,8 +70,18 @@ router.post('/add', protect, async (req, res) => {
     // Get or create cart
     const cart = await Cart.getOrCreateCart(req.user._id);
     
-    // Add item to cart
-    await cart.addItem(product, quantity);
+    // Add item to cart with error handling
+    try {
+      await cart.addItem(product, quantity);
+      await cart.save();
+    } catch (addItemError) {
+      console.error('Error adding item to cart:', addItemError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to add item to cart',
+        error: addItemError.message
+      });
+    }
     
     // Populate and return updated cart
     await cart.populate('items.product');

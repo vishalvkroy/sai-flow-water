@@ -69,6 +69,11 @@ cartSchema.pre('save', function(next) {
 // Method to add item to cart
 cartSchema.methods.addItem = function(productData, quantity = 1) {
   const existingItemIndex = this.items.findIndex(item => {
+    // Handle null/undefined product references
+    if (!item.product) {
+      return false;
+    }
+    
     // Handle both populated and non-populated product references
     const itemProductId = item.product._id ? item.product._id.toString() : item.product.toString();
     return itemProductId === productData._id.toString();
