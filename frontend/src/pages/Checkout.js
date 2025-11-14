@@ -1298,30 +1298,70 @@ const Checkout = () => {
                 </div>
                 
                 <div>
-                  {validItems.map((item) => (
-                    <OrderItem key={item.product._id}>
-                      <ItemImage
-                        src={getImageUrl(item.product?.images?.[0]) || '/default-product.jpg'}
-                        alt={item.product?.name || 'Product'}
-                        onError={(e) => {
-                          e.target.src = '/default-product.jpg';
-                        }}
-                      />
-                      <ItemDetails>
-                        <h4>{item.product?.name || 'Unknown Product'}</h4>
-                        <p>SKU: {item.product?.sku || 'N/A'}</p>
-                        <p className="quantity">Qty: {item.quantity || 1}</p>
-                      </ItemDetails>
-                      <ItemPrice>
-                        <div className="price">
-                          ₹{((item.product?.price || 0) * (item.quantity || 1)).toLocaleString()}
+                  {(() => {
+                    try {
+                      return validItems
+                        .filter(item => item && item.product && item.product._id)
+                        .map((item) => {
+                          // Additional safety check for each item
+                          if (!item || !item.product) {
+                            return null;
+                          }
+                          
+                          return (
+                            <OrderItem key={item.product._id || Math.random()}>
+                              <ItemImage
+                                src={getImageUrl(item.product.images?.[0]) || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23e5e7eb" width="100" height="100"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'}
+                                alt={item.product.name || 'Product'}
+                                onError={(e) => {
+                                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23e5e7eb" width="100" height="100"/%3E%3Ctext fill="%236b7280" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                              <ItemDetails>
+                                <h4>{item.product.name || 'Unknown Product'}</h4>
+                                <p>SKU: {item.product.sku || 'N/A'}</p>
+                                <p className="quantity">Qty: {item.quantity || 1}</p>
+                              </ItemDetails>
+                              <ItemPrice>
+                                <div className="price">
+                                  ₹{((item.product.price || 0) * (item.quantity || 1)).toLocaleString()}
+                                </div>
+                                <div className="quantity">
+                                  ₹{(item.product.price || 0).toLocaleString()} each
+                                </div>
+                              </ItemPrice>
+                            </OrderItem>
+                          );
+                        })
+                        .filter(Boolean); // Remove any null items
+                    } catch (error) {
+                      console.error('Error rendering checkout items:', error);
+                      return (
+                        <div style={{
+                          padding: '20px',
+                          textAlign: 'center',
+                          background: '#fee2e2',
+                          borderRadius: '8px',
+                          color: '#dc2626'
+                        }}>
+                          <p>Error loading cart items. Please refresh the page.</p>
+                          <button 
+                            onClick={() => window.location.reload()}
+                            style={{
+                              padding: '8px 16px',
+                              background: '#dc2626',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Refresh Page
+                          </button>
                         </div>
-                        <div className="quantity">
-                          ₹{(item.product?.price || 0).toLocaleString()} each
-                        </div>
-                      </ItemPrice>
-                    </OrderItem>
-                  ))}
+                      );
+                    }
+                  })()}
                 </div>
                 
                 <ButtonGroup>
