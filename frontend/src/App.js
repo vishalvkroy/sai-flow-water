@@ -23,7 +23,6 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
 import CartPage from './pages/CartPage';
-import Checkout from './pages/Checkout';
 import CheckoutSafe from './pages/CheckoutSafe';
 import Booking from './pages/Booking';
 import ServiceBooking from './pages/ServiceBooking';
