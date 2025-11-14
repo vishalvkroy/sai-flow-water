@@ -136,22 +136,27 @@ const createOrderFromCart = async (req, res) => {
       } : null
     });
 
+    console.log('💾 Saving order to database...');
     const createdOrder = await order.save();
+    console.log('✅ Order saved successfully:', createdOrder.orderNumber);
 
     // DON'T clear cart yet - only clear after successful payment
     // For COD orders, cart will be cleared when order is delivered
     // For online payment, cart will be cleared after payment verification
 
     // Populate order for response
+    console.log('🔄 Populating order details...');
     const populatedOrder = await Order.findById(createdOrder._id)
       .populate('user', 'name email')
       .populate('orderItems.product', 'name images');
+    console.log('✅ Order populated successfully');
 
     // Create real-time notification for seller
     try {
-      // Get seller user ID (you may need to adjust this based on your user model)
+      console.log('📢 Creating seller notifications...');
       const User = require('../models/User');
       const sellers = await User.find({ role: 'seller' });
+      console.log(`👥 Found ${sellers.length} sellers to notify`);
       
       for (const seller of sellers) {
         await createNotification(
@@ -163,19 +168,29 @@ const createOrderFromCart = async (req, res) => {
           { orderId: populatedOrder._id, orderNumber: populatedOrder.orderNumber }
         );
       }
+      console.log('✅ Seller notifications created successfully');
     } catch (notifError) {
-      console.log('Notification creation failed:', notifError.message);
+      console.log('⚠️ Notification creation failed (non-blocking):', notifError.message);
     }
 
-    // Send confirmation email (if email service is working)
+    // Send confirmation email (if email service is working) - with timeout
     try {
-      await sendEmail({
+      const emailPromise = sendEmail({
         email: req.user.email,
         subject: emailTemplates.orderConfirmation(populatedOrder, req.user).subject,
         html: emailTemplates.orderConfirmation(populatedOrder, req.user).html
       });
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email timeout')), 5000)
+      );
+      
+      await Promise.race([emailPromise, timeoutPromise]);
+      console.log('✅ Order confirmation email sent successfully');
     } catch (emailError) {
-      console.log('Email notification failed:', emailError.message);
+      console.log('⚠️ Email notification failed (non-blocking):', emailError.message);
+      // Don't let email failure block order creation
     }
 
     // Emit real-time notification to sellers
@@ -195,11 +210,13 @@ const createOrderFromCart = async (req, res) => {
       console.log(`✅ New order notification sent to sellers: ${populatedOrder.orderNumber}`);
     }
 
+    console.log('📤 Sending order response to client...');
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
       data: populatedOrder
     });
+    console.log('✅ Order creation completed successfully:', populatedOrder.orderNumber);
   } catch (error) {
     console.error('Create order from cart error:', error);
     console.error('Error stack:', error.stack);
