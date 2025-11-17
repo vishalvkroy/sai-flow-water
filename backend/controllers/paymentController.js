@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Order = require('../models/Order');
+const emailService = require('../services/emailService');
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -124,8 +125,13 @@ const verifyPayment = async (req, res) => {
       });
     }
 
+    const paymentTimestamp = new Date();
+    const customerObjectId = order.user;
+    const customerId = customerObjectId.toString();
+    const wasPending = order.orderStatus === 'pending';
+
     order.isPaid = true;
-    order.paidAt = new Date();
+    order.paidAt = paymentTimestamp;
     order.paymentStatus = 'completed';
     order.razorpayOrderId = order.razorpayOrderId || razorpay_order_id;
     order.razorpayPaymentId = razorpay_payment_id;
@@ -140,12 +146,23 @@ const verifyPayment = async (req, res) => {
       razorpay_signature
     };
 
+    if (wasPending) {
+      order.orderStatus = 'confirmed';
+      order.statusHistory = order.statusHistory || [];
+      order.statusHistory.push({
+        status: 'confirmed',
+        timestamp: paymentTimestamp,
+        note: 'Order auto-confirmed after successful online payment'
+      });
+    }
+
     await order.save();
+    const populatedOrder = await order.populate('user', 'name email phone');
 
     // Clear user's cart after successful payment
     try {
       const Cart = require('../models/Cart');
-      const cart = await Cart.findOne({ user: order.user });
+      const cart = await Cart.findOne({ user: customerObjectId });
       if (cart) {
         await cart.clearCart();
         console.log('✅ Cart cleared after successful payment');
@@ -154,7 +171,7 @@ const verifyPayment = async (req, res) => {
       console.log('Cart clear failed (non-critical):', cartError.message);
     }
 
-    // Emit Socket.IO event for real-time analytics update
+    // Emit Socket.IO event for real-time analytics update and order status
     try {
       const io = require('../server').io;
       if (io) {
@@ -166,17 +183,86 @@ const verifyPayment = async (req, res) => {
             orderId: order._id,
             amount: order.totalPrice
           });
+
+          if (wasPending) {
+            io.to(seller._id.toString()).emit('order_status_updated', {
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              status: 'confirmed',
+              message: 'Order auto-confirmed after successful payment'
+            });
+          }
         });
+
+        if (wasPending) {
+          io.to(`user_${customerId}`).emit('order_status_updated', {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            status: 'confirmed',
+            message: 'Payment received. Your order is confirmed!'
+          });
+        }
       }
     } catch (socketError) {
       console.log('Socket.IO emit failed (non-critical):', socketError.message);
     }
 
+    // Send customer notifications & email asynchronously
+    setImmediate(async () => {
+      try {
+        const { createNotification } = require('./notificationController');
+
+        await createNotification(
+          customerObjectId,
+          'payment_success',
+          'Payment Received',
+          `We received ₹${order.totalPrice.toLocaleString('en-IN')} for order #${order.orderNumber}.`,
+          `/orders/${order._id}`,
+          { orderId: order._id, amount: order.totalPrice }
+        );
+
+        if (wasPending) {
+          await createNotification(
+            customerObjectId,
+            'order_confirmed',
+            'Order Confirmed',
+            `Order #${order.orderNumber} is confirmed and now being processed.`,
+            `/orders/${order._id}`,
+            { orderId: order._id }
+          );
+        }
+      } catch (notificationError) {
+        console.error('Payment notification error:', notificationError.message);
+      }
+    });
+
+    if (wasPending) {
+      setImmediate(async () => {
+        try {
+          await emailService.sendOrderConfirmation(populatedOrder, populatedOrder.user);
+        } catch (emailError) {
+          console.error('Failed to send auto-confirmation email:', emailError.message);
+        }
+      });
+    }
+
+    const sanitizedOrder = {
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      statusHistory: order.statusHistory,
+      isPaid: order.isPaid,
+      paidAt: order.paidAt,
+      paymentStatus: order.paymentStatus,
+      paymentGateway: order.paymentGateway,
+      totalPrice: order.totalPrice
+    };
+
     res.json({
       success: true,
       message: 'Payment verified successfully',
       data: {
-        order
+        order: sanitizedOrder
       }
     });
   } catch (error) {
