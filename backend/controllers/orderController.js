@@ -173,28 +173,27 @@ const createOrderFromCart = async (req, res) => {
       console.log('⚠️ Notification creation failed (non-blocking):', notifError.message);
     }
 
-    // Send order confirmation email
-    try {
-      const emailTemplate = emailTemplates.orderConfirmation(populatedOrder, req.user);
-      
-      await sendEmail({
-        email: req.user.email,
-        subject: emailTemplate.subject,
-        html: emailTemplate.html,
-        text: `Thank you for your order #${populatedOrder.orderNumber}. ` +
-              `Total Amount: ₹${populatedOrder.totalPrice}. ` +
-              `Shipping to: ${populatedOrder.shippingAddress.address}, ${populatedOrder.shippingAddress.city}`
-      });
-      
-      console.log('✅ Order confirmation email sent successfully');
-    } catch (emailError) {
-      console.error('⚠️ Failed to send order confirmation email:', {
-        error: emailError.message,
-        orderId: populatedOrder._id,
-        user: req.user.email
-      });
-      // Don't block order creation if email fails
-    }
+    // Send order confirmation email asynchronously (don't block response)
+    setImmediate(async () => {
+      try {
+        const emailTemplate = emailTemplates.orderConfirmation(populatedOrder, req.user);
+        await sendEmail({
+          email: req.user.email,
+          subject: emailTemplate.subject,
+          html: emailTemplate.html,
+          text: `Thank you for your order #${populatedOrder.orderNumber}. ` +
+                `Total Amount: ₹${populatedOrder.totalPrice}. ` +
+                `Shipping to: ${populatedOrder.shippingAddress.address}, ${populatedOrder.shippingAddress.city}`
+        });
+        console.log('✅ Order confirmation email queued successfully');
+      } catch (emailError) {
+        console.error('⚠️ Failed to send order confirmation email:', {
+          error: emailError.message,
+          orderId: populatedOrder._id,
+          user: req.user.email
+        });
+      }
+    });
 
     // Emit real-time notification to sellers
     const io = req.app.get('io');
