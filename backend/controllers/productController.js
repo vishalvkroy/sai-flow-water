@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Review = require('../models/Review');
+const { deleteImage, getPublicIdFromUrl } = require('../config/cloudinary');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -230,7 +231,7 @@ const updateProduct = async (req, res) => {
   }
 };
 
-// @desc    Delete product
+// @desc    Delete product (soft delete)
 // @route   DELETE /api/products/:id
 // @access  Private/Admin
 const deleteProduct = async (req, res) => {
@@ -250,13 +251,133 @@ const deleteProduct = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Product deleted successfully'
+      message: 'Product deleted successfully (soft delete)'
     });
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while deleting product'
+    });
+  }
+};
+
+// @desc    Permanently delete product and its images
+// @route   DELETE /api/products/:id/permanent
+// @access  Private/Admin
+const permanentDeleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    console.log(`🗑️  Permanently deleting product: ${product.name}`);
+    
+    // Delete images from Cloudinary
+    const deletedImages = [];
+    const failedImages = [];
+    
+    if (product.images && product.images.length > 0) {
+      console.log(`📸 Deleting ${product.images.length} images from Cloudinary...`);
+      
+      for (const imageUrl of product.images) {
+        try {
+          const publicId = getPublicIdFromUrl(imageUrl);
+          if (publicId) {
+            const result = await deleteImage(publicId);
+            if (result.result === 'ok') {
+              deletedImages.push(publicId);
+              console.log(`✅ Deleted image: ${publicId}`);
+            } else {
+              failedImages.push({ publicId, reason: result.result });
+              console.log(`⚠️  Failed to delete image: ${publicId} - ${result.result}`);
+            }
+          } else {
+            failedImages.push({ url: imageUrl, reason: 'Could not extract public ID' });
+            console.log(`⚠️  Could not extract public ID from: ${imageUrl}`);
+          }
+        } catch (error) {
+          failedImages.push({ url: imageUrl, reason: error.message });
+          console.error(`❌ Error deleting image ${imageUrl}:`, error.message);
+        }
+      }
+    }
+
+    // Delete product from database
+    await Product.findByIdAndDelete(req.params.id);
+    
+    // Also delete related reviews
+    await Review.deleteMany({ product: req.params.id });
+
+    console.log(`✅ Product ${product.name} permanently deleted`);
+
+    res.json({
+      success: true,
+      message: 'Product and images permanently deleted',
+      data: {
+        productId: req.params.id,
+        productName: product.name,
+        imagesDeleted: deletedImages.length,
+        imagesFailed: failedImages.length,
+        deletedImages,
+        failedImages: failedImages.length > 0 ? failedImages : undefined
+      }
+    });
+  } catch (error) {
+    console.error('Permanent delete product error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while permanently deleting product',
+      error: process.env.NODE_ENV === 'development' ? error.stack : error.message
+    });
+  }
+};
+
+// @desc    Clean up orphaned images from Cloudinary
+// @route   POST /api/products/cleanup-images
+// @access  Private/Admin
+const cleanupOrphanedImages = async (req, res) => {
+  try {
+    console.log('🧹 Starting orphaned images cleanup...');
+    
+    // Get all products with images
+    const products = await Product.find({ images: { $exists: true, $not: { $size: 0 } } });
+    
+    // Collect all image URLs from products
+    const usedImageUrls = new Set();
+    products.forEach(product => {
+      if (product.images) {
+        product.images.forEach(imageUrl => {
+          usedImageUrls.add(imageUrl);
+        });
+      }
+    });
+    
+    console.log(`📊 Found ${usedImageUrls.size} images in use across ${products.length} products`);
+    
+    // Note: To get all images from Cloudinary, you'd need to use the Admin API
+    // This is a basic implementation that focuses on cleaning up known orphaned images
+    
+    res.json({
+      success: true,
+      message: 'Image cleanup analysis completed',
+      data: {
+        productsScanned: products.length,
+        imagesInUse: usedImageUrls.size,
+        note: 'This is a basic analysis. Full cleanup requires Cloudinary Admin API access.'
+      }
+    });
+  } catch (error) {
+    console.error('Cleanup orphaned images error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during image cleanup',
+      error: process.env.NODE_ENV === 'development' ? error.stack : error.message
     });
   }
 };
@@ -361,6 +482,8 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  permanentDeleteProduct,
+  cleanupOrphanedImages,
   getFeaturedProducts,
   getProductsByCategory,
   addProductReview

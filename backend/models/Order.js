@@ -115,6 +115,24 @@ const orderSchema = new mongoose.Schema({
     required: true,
     enum: ['razorpay', 'upi', 'cash_on_delivery', 'cod', 'online']
   },
+  paymentGateway: {
+    type: String,
+    enum: ['razorpay', 'mock', 'manual'],
+    default: 'manual'
+  },
+  razorpayOrderId: {
+    type: String,
+    trim: true,
+    index: true
+  },
+  razorpayPaymentId: {
+    type: String,
+    trim: true
+  },
+  razorpaySignature: {
+    type: String,
+    trim: true
+  },
   paymentResult: {
     id: String,
     status: String,

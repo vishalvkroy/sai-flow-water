@@ -2,6 +2,8 @@
  * Professional Email Templates for Service Bookings
  */
 
+const FRONTEND_BASE_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 const getBookingConfirmationEmail = (booking, user) => {
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-IN', {
@@ -303,7 +305,7 @@ const getBookingConfirmationEmail = (booking, user) => {
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL}/customer-dashboard" class="button">
+        <a href="${FRONTEND_BASE_URL}/customer-dashboard" class="button">
           View Booking Details
         </a>
       </div>
@@ -321,9 +323,9 @@ const getBookingConfirmationEmail = (booking, user) => {
       <p style="margin: 5px 0; opacity: 0.8;">${process.env.COMPANY_LOCATION}</p>
       
       <div class="footer-links">
-        <a href="${process.env.FRONTEND_URL}">Website</a> |
-        <a href="${process.env.FRONTEND_URL}/services">Services</a> |
-        <a href="${process.env.FRONTEND_URL}/contact">Contact</a>
+        <a href="${FRONTEND_BASE_URL}">Website</a> |
+        <a href="${FRONTEND_BASE_URL}/services">Services</a> |
+        <a href="${FRONTEND_BASE_URL}/contact">Contact</a>
       </div>
 
       <p style="font-size: 12px; opacity: 0.7; margin-top: 20px;">
@@ -455,7 +457,7 @@ const getServiceCompletedEmail = (booking) => {
       <div class="rating-box">
         <h3>How was your experience?</h3>
         <p>We'd love to hear your feedback!</p>
-        <a href="${process.env.FRONTEND_URL}/customer-dashboard" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+        <a href="${FRONTEND_BASE_URL}/customer-dashboard" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
           Rate Our Service
         </a>
       </div>
@@ -593,7 +595,7 @@ const orderShipped = (order, user) => {
       </div>
 
       <div style="text-align: center;">
-        <a href="${process.env.FRONTEND_URL}/track-order/${order.orderNumber}" class="track-button">
+        <a href="${FRONTEND_BASE_URL}/track-order/${order.orderNumber}" class="track-button">
           🔍 Track Your Order
         </a>
       </div>

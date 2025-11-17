@@ -13,7 +13,7 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { ordersAPI } from '../utils/api';
+import { ordersAPI, paymentsAPI } from '../utils/api';
 import { toast } from 'react-toastify';
 import { formatCurrency, getImageUrl } from '../utils/helpers';
 
@@ -659,12 +659,29 @@ const Checkout = () => {
         
         if (response.data?.success) {
           const order = response.data.data;
+
+          // Initialize payment with backend so that Razorpay order + session token are generated server-side
+          let paymentData;
+          try {
+            const paymentInitResponse = await paymentsAPI.createPaymentOrder(order._id);
+            paymentData = paymentInitResponse.data?.data;
+          } catch (paymentError) {
+            console.error('Payment initialization error:', paymentError);
+            toast.error(paymentError.response?.data?.message || 'Unable to initiate payment. Please try again or choose COD.');
+            setLoading(false);
+            return;
+          }
+
+          if (!paymentData?.razorpayOrderId) {
+            toast.error('Payment gateway is unavailable right now. Please try Cash on Delivery or retry later.');
+            setLoading(false);
+            return;
+          }
           
-          // Check if this is a mock payment (development mode)
-          const isMockPayment = order.razorpayOrderId?.startsWith('order_mock_');
+          // Determine if backend switched to mock mode (usually when Razorpay creds are missing)
+          const isMockPayment = paymentData.isMockMode || paymentData.razorpayOrderId.startsWith('order_mock_');
 
           if (isMockPayment) {
-            // Handle mock payment for development
             console.log('⚠️  Mock payment mode - simulating payment');
             
             const confirmPayment = window.confirm(
@@ -687,7 +704,7 @@ const Checkout = () => {
                 const verifyResponse = await ordersAPI.verifyPayment({
                   orderId: order._id,
                   razorpay_payment_id: mockPaymentId,
-                  razorpay_order_id: order.razorpayOrderId,
+                  razorpay_order_id: paymentData.razorpayOrderId,
                   razorpay_signature: mockSignature
                 });
 
@@ -715,125 +732,111 @@ const Checkout = () => {
               setLoading(false);
             }
           } else {
-            // Real Razorpay payment
+            if (!window.Razorpay) {
+              toast.error('Payment SDK not loaded. Please refresh the page and try again.');
+              setLoading(false);
+              return;
+            }
+
+            // Real Razorpay payment with backend-generated order id
+            const razorpayKey = paymentData.keyId || process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_RaxhPfGsI6kH89';
             const options = {
-            key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_RaxhPfGsI6kH89',
-            amount: Math.round(total * 100), // Amount in paise
-            currency: 'INR',
-            name: 'Sai Enterprises',
-            description: `Order #${order.orderNumber}`,
-            image: '/logo.png',
-            order_id: order.razorpayOrderId || '', // If you create Razorpay order in backend
-            
-            // Enable UPI and all payment methods
-            method: {
-              upi: true,
-              card: true,
-              netbanking: true,
-              wallet: true
-            },
-            
-            // Payment success handler
-            handler: async function (response) {
-              try {
-                setLoading(true);
-                toast.loading('Verifying payment...');
-                
-                // Verify payment on backend
-                const verifyResponse = await ordersAPI.verifyPayment({
-                  orderId: order._id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_signature: response.razorpay_signature
-                });
-                
-                if (verifyResponse.data?.success) {
-                  // Payment successful!
-                  toast.dismiss();
-                  toast.success('🎉 Payment Successful!', {
-                    duration: 3000,
-                    icon: '✅'
+              key: razorpayKey,
+              amount: paymentData.amount, // Amount in paise
+              currency: 'INR',
+              name: 'Sai Enterprises',
+              description: `Order #${order.orderNumber}`,
+              image: '/logo.png',
+              order_id: paymentData.razorpayOrderId,
+              
+              method: {
+                upi: true,
+                card: true,
+                netbanking: true,
+                wallet: true
+              },
+              
+              handler: async function (response) {
+                try {
+                  setLoading(true);
+                  toast.loading('Verifying payment...');
+                  
+                  const verifyResponse = await ordersAPI.verifyPayment({
+                    orderId: order._id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature
                   });
                   
-                  // Show success message
-                  setTimeout(() => {
-                    toast.success(`Order #${order.orderNumber} confirmed! Redirecting...`);
-                  }, 500);
-                  
-                  // Redirect to dashboard
-                  setTimeout(() => {
-                    navigate('/dashboard');
-                  }, 2000);
-                } else {
+                  if (verifyResponse.data?.success) {
+                    toast.dismiss();
+                    toast.success('🎉 Payment Successful!', {
+                      duration: 3000,
+                      icon: '✅'
+                    });
+                    
+                    setTimeout(() => {
+                      toast.success(`Order #${order.orderNumber} confirmed! Redirecting...`);
+                    }, 500);
+                    
+                    setTimeout(() => {
+                      navigate('/dashboard');
+                    }, 2000);
+                  } else {
+                    toast.dismiss();
+                    toast.error('❌ Payment verification failed. Please contact support with Payment ID: ' + response.razorpay_payment_id);
+                  }
+                } catch (error) {
                   toast.dismiss();
-                  toast.error('❌ Payment verification failed. Please contact support with Payment ID: ' + response.razorpay_payment_id);
+                  console.error('Payment verification error:', error);
+                  toast.error('Payment verification failed. Please contact support.');
+                } finally {
+                  setLoading(false);
                 }
-              } catch (error) {
-                toast.dismiss();
-                console.error('Payment verification error:', error);
-                toast.error('Payment verification failed. Please contact support.');
-              } finally {
-                setLoading(false);
-              }
-            },
-            
-            // Customer details pre-fill
-            prefill: {
-              name: shippingAddress.fullName,
-              email: shippingAddress.email,
-              contact: shippingAddress.phone
-            },
-            
-            // Order notes
-            notes: {
-              order_id: order._id,
-              order_number: order.orderNumber,
-              customer_name: shippingAddress.fullName,
-              shipping_address: `${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.postalCode}`
-            },
-            
-            // Theme customization
-            theme: {
-              color: '#667eea',
-              backdrop_color: 'rgba(0, 0, 0, 0.5)'
-            },
-            
-            // Modal settings
-            modal: {
-              backdropclose: false,
-              escape: true,
-              handleback: true,
-              confirm_close: true,
-              ondismiss: function() {
-                toast.info('💳 Payment cancelled. You can retry from your orders page.');
-                setLoading(false);
               },
-              animation: true
-            },
-            
-            // Retry settings
-            retry: {
-              enabled: true,
-              max_count: 3
-            },
-            
-            // Timeout
-            timeout: 900, // 15 minutes
-            
-            // Remember customer
-            remember_customer: false
-          };
+              
+              prefill: {
+                name: shippingAddress.fullName,
+                email: shippingAddress.email,
+                contact: shippingAddress.phone
+              },
+              notes: {
+                order_id: order._id,
+                order_number: order.orderNumber,
+                customer_name: shippingAddress.fullName,
+                shipping_address: `${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.postalCode}`
+              },
+              theme: {
+                color: '#667eea',
+                backdrop_color: 'rgba(0, 0, 0, 0.5)'
+              },
+              modal: {
+                backdropclose: false,
+                escape: true,
+                handleback: true,
+                confirm_close: true,
+                ondismiss: function() {
+                  toast.info('💳 Payment cancelled. You can retry from your orders page.');
+                  setLoading(false);
+                },
+                animation: true
+              },
+              retry: {
+                enabled: true,
+                max_count: 3
+              },
+              timeout: 900,
+              remember_customer: false
+            };
           
-          const razorpay = new window.Razorpay(options);
-          
-          // Handle payment failure
-          razorpay.on('payment.failed', function (response) {
-            toast.error('❌ Payment failed: ' + response.error.description);
-            setLoading(false);
-          });
-          
-          // Open Razorpay checkout
-          razorpay.open();
+            const razorpay = new window.Razorpay(options);
+            
+            razorpay.on('payment.failed', function (response) {
+              toast.error('❌ Payment failed: ' + response.error.description);
+              setLoading(false);
+            });
+            
+            razorpay.open();
           }
         }
       }

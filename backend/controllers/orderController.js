@@ -173,24 +173,27 @@ const createOrderFromCart = async (req, res) => {
       console.log('⚠️ Notification creation failed (non-blocking):', notifError.message);
     }
 
-    // Send confirmation email (if email service is working) - with timeout
+    // Send order confirmation email
     try {
-      const emailPromise = sendEmail({
+      const emailTemplate = emailTemplates.orderConfirmation(populatedOrder, req.user);
+      
+      await sendEmail({
         email: req.user.email,
-        subject: emailTemplates.orderConfirmation(populatedOrder, req.user).subject,
-        html: emailTemplates.orderConfirmation(populatedOrder, req.user).html
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: `Thank you for your order #${populatedOrder.orderNumber}. ` +
+              `Total Amount: ₹${populatedOrder.totalPrice}. ` +
+              `Shipping to: ${populatedOrder.shippingAddress.address}, ${populatedOrder.shippingAddress.city}`
       });
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Email timeout')), 5000)
-      );
-      
-      await Promise.race([emailPromise, timeoutPromise]);
       console.log('✅ Order confirmation email sent successfully');
     } catch (emailError) {
-      console.log('⚠️ Email notification failed (non-blocking):', emailError.message);
-      // Don't let email failure block order creation
+      console.error('⚠️ Failed to send order confirmation email:', {
+        error: emailError.message,
+        orderId: populatedOrder._id,
+        user: req.user.email
+      });
+      // Don't block order creation if email fails
     }
 
     // Emit real-time notification to sellers

@@ -3,32 +3,58 @@ const nodemailer = require('nodemailer');
 // Create transporter only if email credentials are provided
 let transporter = null;
 
-if (process.env.EMAIL_SERVICE && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+const FRONTEND_BASE_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-  // Verify transporter
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error('Email transporter error:', error);
-      transporter = null; // Disable email if verification fails
-    } else {
-      console.log('✅ Email server is ready to send messages');
-    }
-  });
+// Check if all required email environment variables are set
+const isEmailConfigured = process.env.EMAIL_SERVICE && 
+                         process.env.EMAIL_USER && 
+                         process.env.EMAIL_PASS;
+
+if (isEmailConfigured) {
+  try {
+    transporter = nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false // For self-signed certificates (remove in production)
+      }
+    });
+
+    // Verify transporter
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error('❌ Email transporter verification failed:', error);
+        transporter = null;
+      } else {
+        console.log('✅ Email server is ready to send messages');
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to create email transporter:', error);
+    transporter = null;
+  }
 } else {
-  console.log('⚠️ Email configuration not found - emails will be disabled');
+  console.warn('⚠️ Email configuration is incomplete. The following environment variables must be set:');
+  if (!process.env.EMAIL_SERVICE) console.warn('  - EMAIL_SERVICE (e.g., gmail, outlook)');
+  if (!process.env.EMAIL_USER) console.warn('  - EMAIL_USER (your email address)');
+  if (!process.env.EMAIL_PASS) console.warn('  - EMAIL_PASS (your email password or app password)');
 }
 
 const sendEmail = async (options) => {
+  // Check if email is properly configured
   if (!transporter) {
-    console.log('📧 Email disabled - would have sent:', options.subject);
-    return false;
+    const errorMsg = 'Email service is not configured';
+    console.error(`❌ ${errorMsg}. Email not sent: ${options.subject} to ${options.email}`);
+    throw new Error(errorMsg);
+  }
+
+  if (!options || !options.email || !options.subject || !options.html) {
+    const errorMsg = 'Missing required email options';
+    console.error(`❌ ${errorMsg}`, options);
+    throw new Error(errorMsg);
   }
 
   try {
@@ -37,14 +63,28 @@ const sendEmail = async (options) => {
       to: options.email,
       subject: options.subject,
       html: options.html,
+      // Add text version for better deliverability
+      text: options.text || options.html.replace(/<[^>]*>?/gm, '')
     };
 
+    console.log(`📧 Attempting to send email to: ${options.email}`);
     const info = await transporter.sendMail(mailOptions);
-    console.log('📧 Email sent:', info.messageId);
+    
+    console.log(`✅ Email sent successfully:`, {
+      messageId: info.messageId,
+      to: options.email,
+      subject: options.subject
+    });
+    
     return true;
   } catch (error) {
-    console.error('📧 Email sending error:', error);
-    return false;
+    console.error('❌ Email sending failed:', {
+      error: error.message,
+      to: options.email,
+      subject: options.subject,
+      stack: error.stack
+    });
+    throw error; // Re-throw to allow calling function to handle the error
   }
 };
 
@@ -60,7 +100,7 @@ const emailTemplates = {
         
         <h3>Order Details:</h3>
         <p><strong>Order Number:</strong> ${order.orderNumber}</p>
-        <p><strong>Total Amount:</strong> $${order.totalPrice}</p>
+        <p><strong>Total Amount:</strong> ₹${order.totalPrice.toLocaleString('en-IN')}</p>
         <p><strong>Shipping Address:</strong> ${order.shippingAddress.address}, ${order.shippingAddress.city}</p>
         
         <p>We'll send you another email when your order ships.</p>
@@ -97,7 +137,7 @@ const emailTemplates = {
         <p>Dear ${user.name},</p>
         <p>You requested to reset your password. Click the link below to reset it:</p>
         
-        <a href="${process.env.FRONTEND_URL}/reset-password/${resetToken}" 
+        <a href="${FRONTEND_BASE_URL}/reset-password/${resetToken}" 
            style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
           Reset Password
         </a>
@@ -220,7 +260,7 @@ const emailTemplates = {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL}/support" 
+            <a href="${FRONTEND_BASE_URL}/support" 
                style="background: #667eea; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
               Contact Support
             </a>
@@ -291,7 +331,7 @@ const emailTemplates = {
           <p style="color: #6b7280;">If you don't receive your refund within the specified time, please contact our support team.</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL}/support" 
+            <a href="${FRONTEND_BASE_URL}/support" 
                style="background: #667eea; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
               Contact Support
             </a>

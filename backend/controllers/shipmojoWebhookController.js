@@ -1,6 +1,8 @@
 const Order = require('../models/Order');
 const { sendEmail, emailTemplates } = require('../utils/sendEmail');
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 /**
  * Professional Shipmojo Webhook Handler
  * Handles real-time shipment status updates from Shipmojo
@@ -526,7 +528,7 @@ async function handleCancelled(data) {
               <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">If you have any questions, please contact our support team.</p>
               
               <div style="text-align: center; margin-top: 30px;">
-                <a href="${process.env.FRONTEND_URL}/orders/${order._id}" style="background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Details</a>
+                <a href="${FRONTEND_URL}/orders/${order._id}" style="background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Details</a>
               </div>
             </div>
             <div style="background-color: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px;">

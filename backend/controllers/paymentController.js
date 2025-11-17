@@ -61,13 +61,20 @@ const createPaymentOrder = async (req, res) => {
       };
     }
 
+    // Persist gateway metadata on order for later verification / retries
+    order.razorpayOrderId = razorpayOrder.id;
+    order.paymentGateway = isMockMode ? 'mock' : 'razorpay';
+    order.paymentStatus = isMockMode ? 'pending' : 'processing';
+    await order.save();
+
     res.json({
       success: true,
       data: {
         razorpayOrderId: razorpayOrder.id,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        keyId: process.env.RAZORPAY_KEY_ID
+        keyId: process.env.RAZORPAY_KEY_ID,
+        isMockMode
       }
     });
   } catch (error) {
@@ -119,6 +126,11 @@ const verifyPayment = async (req, res) => {
 
     order.isPaid = true;
     order.paidAt = new Date();
+    order.paymentStatus = 'completed';
+    order.razorpayOrderId = order.razorpayOrderId || razorpay_order_id;
+    order.razorpayPaymentId = razorpay_payment_id;
+    order.razorpaySignature = razorpay_signature;
+    order.paymentGateway = order.paymentGateway || (isMockPayment ? 'mock' : 'razorpay');
     order.paymentResult = {
       id: razorpay_payment_id,
       status: 'completed',

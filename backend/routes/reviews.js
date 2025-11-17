@@ -49,11 +49,12 @@ router.post('/:productId/reviews', protect, async (req, res) => {
       });
     }
 
-    // Create review
+    // Create review with a generated title from the first 30 chars of the comment
     const review = await Review.create({
       product: productId,
       user: req.user._id,
       rating,
+      title: comment.trim().substring(0, 30) + (comment.length > 30 ? '...' : ''),
       comment: comment.trim()
     });
 

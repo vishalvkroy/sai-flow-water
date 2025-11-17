@@ -3,6 +3,8 @@ const { generateToken } = require('../utils/generateToken');
 const { sendEmail, emailTemplates } = require('../utils/sendEmail');
 const { generateRandomString } = require('../utils/helpers');
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
@@ -405,24 +407,26 @@ const forgotPassword = async (req, res) => {
     console.log(`💾 Token saved to database`);
 
     // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const resetUrl = `${FRONTEND_URL}/reset-password/${resetToken}`;
     
     console.log(`🔗 Reset URL created: ${resetUrl}`);
 
-    // Send email
+    // Send email using the enhanced email service
     try {
-      const emailService = require('../services/emailService');
-      const emailSent = await emailService.sendPasswordReset(user, resetUrl);
+      const emailTemplate = emailTemplates.passwordReset(user, resetToken);
+      
+      await sendEmail({
+        email: user.email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html
+      });
 
-      if (emailSent) {
-        console.log(`✅ Password reset email sent successfully to: ${email}`);
-        return res.json({
-          success: true,
-          message: 'Password reset email sent successfully. Please check your inbox.'
-        });
-      } else {
-        throw new Error('Email service returned false');
-      }
+      console.log(`✅ Password reset email sent successfully to: ${email}`);
+      return res.json({
+        success: true,
+        message: 'Password reset email sent successfully. Please check your inbox.'
+      });
+      
     } catch (emailError) {
       console.error('❌ Email sending failed:', emailError);
       
@@ -431,9 +435,18 @@ const forgotPassword = async (req, res) => {
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
 
+      // Provide more detailed error message
+      let errorMessage = 'Failed to send reset email. Please try again later.';
+      if (emailError.message.includes('getaddrinfo ENOTFOUND')) {
+        errorMessage = 'Email server is not reachable. Please check your internet connection.';
+      } else if (emailError.message.includes('Invalid login')) {
+        errorMessage = 'Email authentication failed. Please check your email configuration.';
+      }
+
       return res.status(500).json({
         success: false,
-        message: 'Failed to send reset email. Please check your email configuration.'
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
       });
     }
   } catch (error) {

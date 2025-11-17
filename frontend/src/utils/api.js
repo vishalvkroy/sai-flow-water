@@ -175,6 +175,7 @@ export const customersAPI = {
 
 // Payments API
 export const paymentsAPI = {
+  createPaymentOrder: (orderId) => api.post('/payments/create-order', { orderId }),
   createPaymentIntent: (data) => api.post('/payments/create-payment-intent', data),
   confirmPayment: (data) => api.post('/payments/confirm', data),
   getPaymentMethods: () => api.get('/payments/methods'),
