@@ -136,6 +136,21 @@ cartSchema.methods.removeItem = function(productId) {
   return this.save();
 };
 
+// Remove multiple products from cart in one go
+cartSchema.methods.removeItemsByProductIds = function(productIds = []) {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return Promise.resolve(this);
+  }
+
+  const idsToRemove = new Set(productIds.map(id => id.toString()));
+  this.items = this.items.filter(item => {
+    const itemProductId = item.product._id ? item.product._id.toString() : item.product.toString();
+    return !idsToRemove.has(itemProductId);
+  });
+
+  return this.save();
+};
+
 // Method to update item quantity
 cartSchema.methods.updateItemQuantity = function(productId, quantity) {
   const itemIndex = this.items.findIndex(item => {

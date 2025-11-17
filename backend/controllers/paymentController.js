@@ -159,13 +159,14 @@ const verifyPayment = async (req, res) => {
     await order.save();
     const populatedOrder = await order.populate('user', 'name email phone');
 
-    // Clear user's cart after successful payment
+    // Remove purchased items from user's cart after successful payment
     try {
       const Cart = require('../models/Cart');
       const cart = await Cart.findOne({ user: customerObjectId });
       if (cart) {
-        await cart.clearCart();
-        console.log('✅ Cart cleared after successful payment');
+        const productIds = order.orderItems.map(item => item.product);
+        await cart.removeItemsByProductIds(productIds);
+        console.log('✅ Purchased items removed from cart after successful payment');
       }
     } catch (cartError) {
       console.log('Cart clear failed (non-critical):', cartError.message);

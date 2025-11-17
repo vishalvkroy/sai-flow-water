@@ -605,6 +605,19 @@ const Checkout = () => {
     return true;
   };
 
+  const cancelPendingOrderAfterPaymentAbort = async (orderId, reason = 'Payment cancelled during checkout') => {
+    if (!orderId) return;
+    try {
+      await ordersAPI.cancelOrder(orderId, { reason });
+      toast.info('Payment cancelled. Any pending order has been removed.');
+    } catch (error) {
+      console.error('Auto-cancel order error:', error);
+      toast.error('Payment cancelled, but we could not update the pending order automatically. Please check your orders page.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (!validateAddress()) return;
     
@@ -659,6 +672,15 @@ const Checkout = () => {
         
         if (response.data?.success) {
           const order = response.data.data;
+          const pendingOrderId = order._id;
+          let paymentFinalized = false;
+          let cancelTriggered = false;
+
+          const safeCancelPayment = async (reason) => {
+            if (paymentFinalized || cancelTriggered) return;
+            cancelTriggered = true;
+            await cancelPendingOrderAfterPaymentAbort(pendingOrderId, reason);
+          };
 
           // Initialize payment with backend so that Razorpay order + session token are generated server-side
           let paymentData;
@@ -668,13 +690,13 @@ const Checkout = () => {
           } catch (paymentError) {
             console.error('Payment initialization error:', paymentError);
             toast.error(paymentError.response?.data?.message || 'Unable to initiate payment. Please try again or choose COD.');
-            setLoading(false);
+            await cancelPendingOrderAfterPaymentAbort(order._id, 'Unable to initiate Razorpay payment');
             return;
           }
 
           if (!paymentData?.razorpayOrderId) {
             toast.error('Payment gateway is unavailable right now. Please try Cash on Delivery or retry later.');
-            setLoading(false);
+            await cancelPendingOrderAfterPaymentAbort(order._id, 'Razorpay order could not be created');
             return;
           }
           
@@ -729,12 +751,12 @@ const Checkout = () => {
               }
             } else {
               toast.info('Payment cancelled');
-              setLoading(false);
+              await cancelPendingOrderAfterPaymentAbort(order._id, 'Mock payment cancelled by user');
             }
           } else {
             if (!window.Razorpay) {
               toast.error('Payment SDK not loaded. Please refresh the page and try again.');
-              setLoading(false);
+              await cancelPendingOrderAfterPaymentAbort(order._id, 'Razorpay SDK unavailable on client');
               return;
             }
 
@@ -757,6 +779,7 @@ const Checkout = () => {
               },
               
               handler: async function (response) {
+                paymentFinalized = true;
                 try {
                   setLoading(true);
                   toast.loading('Verifying payment...');
@@ -816,8 +839,11 @@ const Checkout = () => {
                 handleback: true,
                 confirm_close: true,
                 ondismiss: function() {
-                  toast.info('💳 Payment cancelled. You can retry from your orders page.');
-                  setLoading(false);
+                  if (!paymentFinalized) {
+                    safeCancelPayment('Customer dismissed Razorpay before paying');
+                  } else {
+                    toast.info('Processing your payment... please wait.');
+                  }
                 },
                 animation: true
               },
@@ -833,7 +859,7 @@ const Checkout = () => {
             
             razorpay.on('payment.failed', function (response) {
               toast.error('❌ Payment failed: ' + response.error.description);
-              setLoading(false);
+              safeCancelPayment('Payment failed on Razorpay checkout');
             });
             
             razorpay.open();
