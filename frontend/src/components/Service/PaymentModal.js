@@ -13,7 +13,11 @@ const PaymentModal = ({ show, onClose, booking, onSuccess }) => {
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
+      if (document.getElementById('rzp-script')) {
+        return resolve(true);
+      }
       const script = document.createElement('script');
+      script.id = 'rzp-script';
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
@@ -23,6 +27,11 @@ const PaymentModal = ({ show, onClose, booking, onSuccess }) => {
 
   const handlePayment = async () => {
     try {
+      if (!booking?._id) {
+        toast.error('Booking information is missing. Please try again.');
+        return;
+      }
+
       // Load Razorpay script
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
@@ -84,6 +93,7 @@ const PaymentModal = ({ show, onClose, booking, onSuccess }) => {
         }
       } else {
         // Real Razorpay payment
+        let paymentCompleted = false;
         const options = {
           key: keyId,
           amount: amount,
@@ -92,6 +102,7 @@ const PaymentModal = ({ show, onClose, booking, onSuccess }) => {
           description: `Service Booking - ${booking.bookingNumber}`,
           order_id: razorpayOrderId,
           handler: async function (response) {
+            paymentCompleted = true;
             try {
               // Verify payment
               const verifyResponse = await servicesAPI.verifyPayment(booking._id, {
@@ -123,12 +134,18 @@ const PaymentModal = ({ show, onClose, booking, onSuccess }) => {
           },
           modal: {
             ondismiss: function() {
-              toast.info('Payment cancelled');
+              if (!paymentCompleted) {
+                toast.info('Payment cancelled. Your booking remains pending.');
+              }
             }
           }
         };
 
         const razorpay = new window.Razorpay(options);
+        razorpay.on('payment.failed', function(error) {
+          console.error('Service payment failed:', error.error);
+          toast.error(error.error?.description || 'Payment failed. Please try again.');
+        });
         razorpay.open();
       }
     } catch (error) {

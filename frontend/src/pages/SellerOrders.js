@@ -893,7 +893,7 @@ const SellerOrders = () => {
                     )}
                     
                     {/* Create Shipment - For confirmed orders or processing orders without shipment data (cancelled shipments) */}
-                    {((orderStatus === 'confirmed' || orderStatus === 'processing') && !order.awbCode && !order.shipmojoShipmentId) && (
+                    {((orderStatus === 'confirmed' || orderStatus === 'processing') && !order.awbCode && !order.shipmojoShipmentId && orderStatus !== 'delivered') && (
                       <ActionButton 
                         title="Create Shipment" 
                         onClick={() => handleShipOrder(order)}
@@ -904,7 +904,7 @@ const SellerOrders = () => {
                     )}
                     
                     {/* Mark as Delivered - Only for shipped orders */}
-                    {orderStatus === 'shipped' && orderStatus !== 'delivered' && (
+                    {orderStatus === 'shipped' && (
                       <ActionButton 
                         title="Mark as Delivered" 
                         onClick={() => handleMarkAsDelivered(orderId)}

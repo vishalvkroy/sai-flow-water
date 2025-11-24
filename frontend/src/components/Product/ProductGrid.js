@@ -10,11 +10,18 @@ import { useCart } from '../../contexts/CartContext';
 
 const GridContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: ${({ viewMode }) =>
+    viewMode === 'list' ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))'};
+  gap: ${({ viewMode }) => (viewMode === 'list' ? '1.5rem' : '2rem')};
   padding: 0 20px;
   max-width: 1200px;
   margin: 0 auto;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    padding: 0 10px;
+    gap: 1.25rem;
+  }
 `;
 
 const ProductCard = styled(motion.div)`
@@ -26,6 +33,8 @@ const ProductCard = styled(motion.div)`
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.05);
   position: relative;
+  display: ${({ viewMode }) => (viewMode === 'list' ? 'flex' : 'block')};
+  align-items: stretch;
 
   &:hover {
     transform: translateY(-10px);
@@ -51,11 +60,21 @@ const ProductCard = styled(motion.div)`
 `;
 
 const ProductImage = styled.div`
-  width: 100%;
-  height: 280px;
+  width: ${({ viewMode }) => (viewMode === 'list' ? '320px' : '100%')};
+  height: ${({ viewMode }) => (viewMode === 'list' ? '100%' : '280px')};
   overflow: hidden;
   position: relative;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: ${({ viewMode }) => (viewMode === 'list' ? '260px' : '100%')};
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    height: 220px;
+  }
 
   &::after {
     content: '';
@@ -95,8 +114,9 @@ const ProductImage = styled.div`
 `;
 
 const ProductInfo = styled.div`
-  padding: 1.75rem;
+  padding: ${({ viewMode }) => (viewMode === 'list' ? '1.5rem' : '1.75rem')};
   background: white;
+  flex: 1;
 `;
 
 const ProductTitle = styled.h3`
@@ -123,7 +143,7 @@ const ProductDescription = styled.p`
   margin-bottom: 1.25rem;
   line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: ${({ viewMode }) => (viewMode === 'list' ? 3 : 2)};
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 2.8rem;
@@ -211,7 +231,7 @@ const EmptyState = styled.div`
   }
 `;
 
-const ProductGrid = ({ products = [] }) => {
+const ProductGrid = ({ products = [], viewMode = 'grid' }) => {
   const { addToCart } = useCart();
   
   // Debug logging
@@ -278,7 +298,7 @@ const ProductGrid = ({ products = [] }) => {
   }
 
   return (
-    <GridContainer>
+    <GridContainer viewMode={viewMode}>
       {displayProducts.map((product, index) => (
         <ProductCard
           key={product._id || index}
@@ -286,8 +306,9 @@ const ProductGrid = ({ products = [] }) => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
           viewport={{ once: true }}
+          viewMode={viewMode}
         >
-          <ProductImage>
+          <ProductImage viewMode={viewMode}>
             {product.images && product.images.length > 0 ? (
               <img 
                 src={getImageUrl(product.images[0])} 
@@ -304,9 +325,9 @@ const ProductGrid = ({ products = [] }) => {
               />
             )}
           </ProductImage>
-          <ProductInfo>
+          <ProductInfo viewMode={viewMode}>
             <ProductTitle>{product.name}</ProductTitle>
-            <ProductDescription>
+            <ProductDescription viewMode={viewMode}>
               {product.description || 'High-quality water purification system for your home'}
             </ProductDescription>
             <ProductPrice><span>₹{product.price?.toLocaleString('en-IN') || 0}</span></ProductPrice>
